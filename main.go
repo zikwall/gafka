@@ -24,7 +24,7 @@ func main() {
 	}()
 
 	go func() {
-		if err := gafka.Subscribe(ctx, "testTopicName", "group2", func(message []string) {
+		if err := gafka.Subscribe(ctx, "testTopicName", "group1", func(message []string) {
 			log.Println("Second ", message)
 		}); err != nil {
 			log.Fatal(err)
@@ -33,6 +33,8 @@ func main() {
 
 	for i := 0; i <= 100; i++ {
 		gafka.Publish("testTopicName", fmt.Sprintf("message #%d", i))
+
+		time.Sleep(1 * time.Second)
 	}
 
 	// todo pubsriber.Wait()

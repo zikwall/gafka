@@ -2,7 +2,6 @@ package lib
 
 import (
 	"context"
-	"math/rand"
 	"sync"
 	"time"
 )
@@ -34,7 +33,7 @@ func Gafka(ctx context.Context, topics []Topic) *PubSub {
 	ps.mu = sync.RWMutex{}
 	ps.context = ctx
 	ps.consumers = make(map[string]map[string]map[int]chan string)
-	ps.messagePool = make(chan Message, 5)
+	ps.messagePool = make(chan Message)
 	ps.messages = map[string]map[int][]string{}
 	ps.offsets = map[string]map[string]uint64{}
 	ps.topics = make(map[string]int, len(topics))
@@ -107,7 +106,7 @@ func (p *PubSub) Subscribe(c context.Context, topic string, group string, handle
 
 	// todo balance between partitions and consumer groups
 	// read random partition
-	partition := rand.Intn(p.topics[topic] - 0)
+	partition := 3
 
 	// todo remove
 	subscriber := make(chan string, 10)
@@ -139,29 +138,34 @@ func (p *PubSub) Subscribe(c context.Context, topic string, group string, handle
 
 		// calculate offset for consumer group
 		i := p.offsets[topic][group]
-		j := i + uint64(batch)
 		l := uint64(len(p.messages[topic][partition]))
+
+		p.mu.RUnlock()
+
+		j := i + uint64(batch)
 
 		if j > l {
 			j = l
 		}
 
-		// read batched messages
-		messages := p.messages[topic][partition][i:j]
+		if j-i > 0 {
+			p.mu.Lock()
+			p.offsets[topic][group] = j
+			p.mu.Unlock()
 
-		p.mu.RUnlock()
+			p.mu.RLock()
+			// read batched messages
+			messages := p.messages[topic][partition][i:j]
+			p.mu.RUnlock()
 
-		p.mu.Lock()
-		p.offsets[topic][group] = j
-		p.mu.Unlock()
-
-		// send to cunsumer
-		if len(messages) > 0 {
-			handler(messages)
+			// send to cunsumer
+			if len(messages) > 0 {
+				handler(messages)
+			}
 		}
 
 		// todo
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Millisecond * 5)
 	}
 }
 
