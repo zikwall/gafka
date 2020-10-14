@@ -41,7 +41,7 @@ type Topic struct {
 	Partitions int
 }
 
-func NewPubScriber(ctx context.Context, topics []Topic) *PubSub {
+func Gafka(ctx context.Context, topics []Topic) *PubSub {
 	ps := new(PubSub)
 	ps.mu = sync.RWMutex{}
 	ps.context = ctx

@@ -11,12 +11,12 @@ import (
 func main() {
 	ctx := context.Background()
 
-	pubscriber := lib.NewPubScriber(ctx, []lib.Topic{
+	gafka := lib.Gafka(ctx, []lib.Topic{
 		{Name: "testTopicName", Partitions: 4},
 	})
 
 	go func() {
-		if err := pubscriber.Subscribe(ctx, "testTopicName", "group1", func(message []string) {
+		if err := gafka.Subscribe(ctx, "testTopicName", "group1", func(message []string) {
 			log.Println("First ", message)
 		}); err != nil {
 			log.Fatal(err)
@@ -24,7 +24,7 @@ func main() {
 	}()
 
 	go func() {
-		if err := pubscriber.Subscribe(ctx, "testTopicName", "group2", func(message []string) {
+		if err := gafka.Subscribe(ctx, "testTopicName", "group2", func(message []string) {
 			log.Println("Second ", message)
 		}); err != nil {
 			log.Fatal(err)
@@ -32,7 +32,7 @@ func main() {
 	}()
 
 	for i := 0; i <= 100; i++ {
-		pubscriber.Publish("testTopicName", fmt.Sprintf("message #%d", i))
+		gafka.Publish("testTopicName", fmt.Sprintf("message #%d", i))
 	}
 
 	// todo pubsriber.Wait()
