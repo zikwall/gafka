@@ -9,14 +9,14 @@ import (
 )
 
 func main() {
-	pubscriber := lib.NewPubScriber([]string{
-		"testTopicName",
-	})
-
 	ctx := context.Background()
 
+	pubscriber := lib.NewPubScriber(ctx, []lib.Topic{
+		{Name: "testTopicName", Partitions: 4},
+	})
+
 	go func() {
-		if err := pubscriber.Subscribe(ctx, "testTopicName", func(message string) {
+		if err := pubscriber.Subscribe(ctx, "testTopicName", "group1", func(message []string) {
 			log.Println("First ", message)
 		}); err != nil {
 			log.Fatal(err)
@@ -24,7 +24,7 @@ func main() {
 	}()
 
 	go func() {
-		if err := pubscriber.Subscribe(ctx, "testTopicName", func(message string) {
+		if err := pubscriber.Subscribe(ctx, "testTopicName", "group2", func(message []string) {
 			log.Println("Second ", message)
 		}); err != nil {
 			log.Fatal(err)
