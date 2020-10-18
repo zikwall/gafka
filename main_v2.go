@@ -11,8 +11,14 @@ import (
 func main() {
 	ctx := context.Background()
 
-	gafka := v2.Gafka(ctx, []v2.Topic{
-		{Name: "testTopicName", Partitions: 4},
+	bootstrapTopics := []v2.Topic{
+		{Name: "testTopicName", Partitions: 6},
+	}
+
+	gafka := v2.Gafka(ctx, v2.Configuration{
+		BatchSize:       10,
+		ReclaimInterval: time.Second * 2,
+		Topics:          bootstrapTopics,
 	})
 
 	err, unsubscribe := gafka.Subscribe(ctx, "testTopicName", "group1", func(messages []string) {
@@ -29,16 +35,18 @@ func main() {
 		log.Println("Second ", messages)
 	})
 
+	defer unsubscribe2()
+
 	go func() {
 		time.Sleep(5 * time.Second)
-		unsubscribe2()
+		// unsubscribe2()
 	}()
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err, unsubscribe3 := gafka.Subscribe(ctx, "testTopicName", "group2", func(messages []string) {
+	/*err, unsubscribe3 := gafka.Subscribe(ctx, "testTopicName", "group1", func(messages []string) {
 		log.Println("Third ", messages)
 	})
 
@@ -46,9 +54,9 @@ func main() {
 
 	if err != nil {
 		log.Fatal(err)
-	}
+	}*/
 
-	/*go func() {
+	go func() {
 		time.Sleep(3 * time.Second)
 
 		err, unsubscribe := gafka.Subscribe(ctx, "testTopicName", "group1", func(messages []string) {
@@ -62,14 +70,30 @@ func main() {
 		}
 
 		time.Sleep(100 * time.Second)
-	}()*/
+	}()
+
+	go func() {
+		time.Sleep(5 * time.Second)
+
+		err, unsubscribe := gafka.Subscribe(ctx, "testTopicName", "group1", func(messages []string) {
+			log.Println("Five ", messages)
+		})
+
+		defer unsubscribe()
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		time.Sleep(100 * time.Second)
+	}()
 
 	for i := 0; i <= 100; i++ {
 		if err := gafka.Publish("testTopicName", fmt.Sprintf("message #%d", i)); err != nil {
 			fmt.Println(err)
 		}
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	// todo pubsriber.Wait()
