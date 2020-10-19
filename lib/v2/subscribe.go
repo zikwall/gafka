@@ -3,7 +3,6 @@ package v2
 import (
 	"context"
 	"errors"
-	"math"
 	"math/rand"
 	"time"
 )
@@ -52,15 +51,16 @@ func (gf *GafkaEmitter) Subscribe(c context.Context, topic, group string, handle
 		gf.partitionListeners[topic][group] = map[int][]int{}
 	}
 
-	// check partition identifiers
-	if _, ok := gf.freePartitions[topic][group]; !ok {
-		// create new identifiers
-		gf.UNSAFE_CreateFreePartitions(topic, group)
-	}
-
 	gf.consumers[topic][group][uniqId] = channel
 
 	gf.mu.Unlock()
+
+	gf.changeConsumers[topic] <- direction{
+		topic: topic,
+		group: group,
+		id:    uniqId,
+		in:    InConsumer,
+	}
 
 	// слушаем лучше так, да
 	go func() {
@@ -93,34 +93,20 @@ func (gf *GafkaEmitter) Subscribe(c context.Context, topic, group string, handle
 				// удаляем из слушателей раздела текущего подписчика
 				delete(gf.partitionListeners[topic][group], uniqId)
 				logln("Удаляем слушаетля", uniqId, "из группы", group, "и раздела", part)
+
+				// удаляем слушателя и закрываем канал
+				delete(gf.consumers[topic][group], uniqId)
+
+				gf.changeConsumers[topic] <- direction{
+					topic: topic,
+					group: group,
+					id:    uniqId,
+					in:    OutConsumer,
+				}
 			}
 
 			gf.mu.Unlock()
 		}()
-
-	BALANCE:
-		gf.mu.Lock()
-
-		countConsumerInGroup := len(gf.consumers[topic][group])
-		partition := gf.topics[topic]
-		partOneConsumer := float64(partition) / float64(countConsumerInGroup)
-
-		// 4 + 0.5 => 5
-		// 3.9 + 0.5 => 4
-		need := int(math.Round(partOneConsumer + 0.49))
-
-		for part := range gf.freePartitions[topic][group] {
-			if len(gf.partitionListeners[topic][group][uniqId]) >= need {
-				break
-			}
-
-			gf.partitionListeners[topic][group][uniqId] = append(gf.partitionListeners[topic][group][uniqId], part)
-			delete(gf.freePartitions[topic][group], part)
-		}
-
-		logln("Подписчик", uniqId, "слушает селудющие РАЗДЕЛЫ", gf.partitionListeners[topic][group][uniqId])
-
-		gf.mu.Unlock()
 
 		ticker := time.NewTicker(gf.config.ReclaimInterval)
 
@@ -131,22 +117,7 @@ func (gf *GafkaEmitter) Subscribe(c context.Context, topic, group string, handle
 			case <-ticker.C:
 				logln("Пробуем запросить данные...")
 
-				gf.mu.Lock()
-
-				if countConsumerInGroup != len(gf.consumers[topic][group]) {
-					gf.mu.Unlock()
-
-					logln("Обнаружены изменения в балансе подписчиков, начинаю процес РЕБАЛАНСИРОВКИ подписчиков")
-
-					ticker.Stop()
-
-					if len(gf.consumers[topic][group]) >= countConsumerInGroup {
-						gf.partitionListeners[topic][group][uniqId] = []int{}
-						gf.UNSAFE_CreateFreePartitions(topic, group)
-					}
-
-					goto BALANCE
-				}
+				gf.mu.RLock()
 
 				// забираем данные только из тех РАЗДЕЛОВ, которые мы слушаем, КЕП, этож очевидно..
 				for _, part := range gf.partitionListeners[topic][group][uniqId] {
@@ -169,11 +140,13 @@ func (gf *GafkaEmitter) Subscribe(c context.Context, topic, group string, handle
 					gf.UNSAFE_CommitOffset(topic, group, part, newOffset)
 
 					if len(messages) > 0 {
+						logln(group, "-", uniqId, "Читаю из", topic, part)
+
 						channel <- messages
 					}
 				}
 
-				gf.mu.Unlock()
+				gf.mu.RUnlock()
 			}
 		}
 	}()

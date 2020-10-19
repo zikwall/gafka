@@ -24,6 +24,7 @@ func (gf GafkaEmitter) UNSAFE_PeekPartitionLength(topic string, partition int) u
 
 func (gf *GafkaEmitter) UNSAFE_CreateTopic(topic Topic) {
 	// не стоит сюды смотреть...
+	gf.changeConsumers[topic.Name] = make(chan direction)
 	gf.topics[topic.Name] = topic.Partitions
 	gf.UNSAFE_CreateTopicPartitions(topic.Name, topic.Partitions)
 	gf.consumers[topic.Name] = map[string]map[int]chan []string{}

@@ -2,9 +2,22 @@ package v2
 
 import (
 	"context"
+	"math"
 	"sync"
 	"time"
 )
+
+const (
+	InConsumer  = 1
+	OutConsumer = 0
+)
+
+type direction struct {
+	topic string
+	group string
+	id    int
+	in    int
+}
 
 type (
 	Topic struct {
@@ -51,6 +64,10 @@ type (
 		// тут надо подумать над интерфейсом MessageStorage
 		// например, ДИСК, ПАМЯТЬ, еще хер знает где
 		messages map[string]map[int][]string
+
+		// topic:group
+		// канал куда отправляются изменения состояний подписчиков для дальнейшей перебалансировки
+		changeConsumers map[string]chan direction
 	}
 )
 
@@ -77,6 +94,7 @@ func Gafka(ctx context.Context, c Configuration) *GafkaEmitter {
 	gf.messagePools = map[string]chan string{}
 	gf.partitionListeners = map[string]map[string]map[int][]int{}
 	gf.freePartitions = map[string]map[string]map[int]int{}
+	gf.changeConsumers = map[string]chan direction{}
 
 	for _, topic := range c.Topics {
 		gf.UNSAFE_CreateTopic(topic)
@@ -84,6 +102,7 @@ func Gafka(ctx context.Context, c Configuration) *GafkaEmitter {
 
 	// надо подумать над целесообразностью запуска в горутине, пока вроде норм
 	go gf.initialize()
+	go gf.coordinator()
 
 	return gf
 }
@@ -97,6 +116,79 @@ func (gf *GafkaEmitter) initialize() {
 			gf.createTopicPartitionListener(topic, partition)
 		}
 	}
+}
+
+// назначается слушатель по ТЕМАМ и РАЗДЕЛАМ для возможности пере-/балансировки ПОДПИСЧИКОВ
+func (gf *GafkaEmitter) coordinator() {
+	for topic, partitions := range gf.topics {
+		gf.createTopicCoordinatorListener(topic, partitions)
+	}
+}
+
+// балансировщик ТЕМ, РАЗДЕЛОВ и шрупп ПОТРЕБИТЕЛЕЙ
+func (gf *GafkaEmitter) createTopicCoordinatorListener(topic string, partitions int) {
+	go func(t string, parts int) {
+		// тут надо подумать ибо есть некоторое дублирование
+		// существует еще глобальное состояние ПОДПИСЧИКОВ
+		// потом надо будет отредактировать
+		consumerInGroup := map[string]map[int]int{}
+
+		for {
+			select {
+			case <-gf.context.Done():
+				return
+			case change := <-gf.changeConsumers[t]:
+				logln("Обнаружены изменения в балансе подписчиков, начинаю процес РЕБАЛАНСИРОВКИ подписчиков")
+
+				topic := t
+				group := change.group
+				uniqId := change.id
+				partition := parts
+
+				if _, ok := consumerInGroup[group]; !ok {
+					consumerInGroup[group] = map[int]int{}
+				}
+
+				if change.in == InConsumer {
+					consumerInGroup[group][uniqId] = 1
+				} else {
+					delete(consumerInGroup[group], uniqId)
+				}
+
+				gf.mu.Lock()
+
+				// check partition identifiers
+				if _, ok := gf.freePartitions[topic][group]; !ok {
+					// create new identifiers
+					gf.UNSAFE_CreateFreePartitions(topic, group)
+				}
+
+				partOneConsumer := float64(partition) / float64(len(consumerInGroup[group]))
+
+				// 4 + 0.5 => 5
+				// 3.9 + 0.5 => 4
+				need := int(math.Round(partOneConsumer + 0.49))
+
+				gf.partitionListeners[topic][group] = map[int][]int{}
+				gf.UNSAFE_CreateFreePartitions(topic, group)
+
+				for consumer := range consumerInGroup[group] {
+					for part := range gf.freePartitions[topic][group] {
+						if len(gf.partitionListeners[topic][group][consumer]) >= need {
+							break
+						}
+
+						gf.partitionListeners[topic][group][consumer] = append(gf.partitionListeners[topic][group][consumer], part)
+						delete(gf.freePartitions[topic][group], part)
+					}
+				}
+
+				logln("Подписчик", uniqId, "слушает селудющие РАЗДЕЛЫ", gf.partitionListeners[topic][group][uniqId])
+
+				gf.mu.Unlock()
+			}
+		}
+	}(topic, partitions)
 }
 
 // Распаралеливаем сообщения ТЕМЫ по разным РАЗДЕЛАМ, каждый раздел работает в своем потоке
