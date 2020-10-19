@@ -2,204 +2,226 @@ package lib
 
 import (
 	"context"
+	"math"
 	"sync"
 	"time"
 )
 
-type (
-	Message struct {
-		topic   string
-		message string
-	}
-	PubSub struct {
-		mu      sync.RWMutex
-		closed  bool
-		context context.Context
+const (
+	InConsumer  = 1
+	OutConsumer = 0
+)
 
-		consumers   map[string]map[string]map[int]chan string
-		offsets     map[string]map[string]uint64
-		messagePool chan Message
-		messages    map[string]map[int][]string
-		topics      map[string]int
-	}
+type direction struct {
+	topic string
+	group string
+	id    int
+	in    int
+}
+
+type (
 	Topic struct {
 		Name       string
 		Partitions int
 	}
+
+	// тут будем заводить основные конфигурации
+	Configuration struct {
+		BatchSize       uint8
+		ReclaimInterval time.Duration
+		Topics          []Topic
+	}
+
+	GafkaEmitter struct {
+		mu      sync.RWMutex
+		closed  bool
+		context context.Context
+		cancel  context.CancelFunc
+		config  Configuration
+
+		// topic:group:unique -> message channel
+		consumers map[string]map[string]map[int]chan []string
+
+		// topic:group:partition -> offset for consumer group
+		offsets map[string]map[string]map[int]uint64
+
+		// topic:partitions
+		topics map[string]int
+
+		// topic:group:partition:unique
+		partitionListeners map[string]map[string]map[int][]int
+
+		// topic:group:partition
+		// возможно позже получится упростить схему, но пока так
+		// суть этой фигни в том, чтобы следить какие РАЗДЕЛЫ свободны и их надя занять
+		// и какие разделы собственно уже заняты целиком и полностью, собственно  их тогда тут не будет, кек
+		freePartitions map[string]map[string]map[int]int
+
+		// topic -> message pool
+		messagePools map[string]chan string
+
+		// topic -> message storage
+		// тут надо подумать над интерфейсом MessageStorage
+		// например, ДИСК, ПАМЯТЬ, еще хер знает где
+		messages map[string]map[int][]string
+
+		// topic:group
+		// канал куда отправляются изменения состояний подписчиков для дальнейшей перебалансировки
+		changeConsumers map[string]chan direction
+	}
 )
 
-func Gafka(ctx context.Context, topics []Topic) *PubSub {
-	ps := new(PubSub)
-	ps.mu = sync.RWMutex{}
-	ps.context = ctx
-	ps.consumers = make(map[string]map[string]map[int]chan string)
-	ps.messagePool = make(chan Message)
-	ps.messages = map[string]map[int][]string{}
-	ps.offsets = map[string]map[string]uint64{}
-	ps.topics = make(map[string]int, len(topics))
+func Gafka(ctx context.Context, c Configuration) *GafkaEmitter {
+	gf := new(GafkaEmitter)
 
-	for _, topic := range topics {
-		ps.topics[topic.Name] = topic.Partitions
-		ps.consumers[topic.Name] = map[string]map[int]chan string{}
-		ps.offsets[topic.Name] = map[string]uint64{}
-
-		ps.unsafeCreatePartitions(topic.Name, topic.Partitions)
+	if c.BatchSize == 0 {
+		c.BatchSize = 10
 	}
 
-	go ps.process(topics)
+	if c.ReclaimInterval == 0 {
+		c.ReclaimInterval = time.Second * 1
+	}
 
-	return ps
+	gf.config = c
+	gf.context, gf.cancel = context.WithCancel(ctx)
+
+	// ну тут конечно полный трешак, нужен конкретный ревью
+	// возможно от части можно вообще избавиться
+	gf.consumers = map[string]map[string]map[int]chan []string{}
+	gf.offsets = map[string]map[string]map[int]uint64{}
+	gf.topics = make(map[string]int, len(c.Topics))
+	gf.messages = map[string]map[int][]string{}
+	gf.messagePools = map[string]chan string{}
+	gf.partitionListeners = map[string]map[string]map[int][]int{}
+	gf.freePartitions = map[string]map[string]map[int]int{}
+	gf.changeConsumers = map[string]chan direction{}
+
+	for _, topic := range c.Topics {
+		gf.UNSAFE_CreateTopic(topic)
+	}
+
+	// надо подумать над целесообразностью запуска в горутине, пока вроде норм
+	go gf.initialize()
+	go gf.coordinator()
+
+	return gf
 }
 
-func (ps *PubSub) unsafeCreatePartitions(topic string, partitions int) {
-	ps.messages[topic] = make(map[int][]string, partitions)
-
-	// todo tmp four parts
-	for i := 0; i < partitions; i++ {
-		ps.messages[topic][i] = []string{}
+// назнача слушаетелей по ТЕМАМ и их РАЗДЕЛАМ
+// нужно будет добавить возможность динамического формирования ТЕМ
+// gafka.AddTopic("topic_name_here", 10)
+func (gf *GafkaEmitter) initialize() {
+	for topic, partitions := range gf.topics {
+		for partition := 1; partition <= partitions; partition++ {
+			gf.createTopicPartitionListener(topic, partition)
+		}
 	}
 }
 
-func (p *PubSub) process(topics []Topic) {
-	for _, topic := range topics {
-		// listen by partitions
-		for partition := 0; partition < topic.Partitions; partition++ {
+// назначается слушатель по ТЕМАМ и РАЗДЕЛАМ для возможности пере-/балансировки ПОДПИСЧИКОВ
+func (gf *GafkaEmitter) coordinator() {
+	for topic, partitions := range gf.topics {
+		gf.createTopicCoordinatorListener(topic, partitions)
+	}
+}
 
-			// make threads
-			go func(part int) {
-				ctx, cancel := context.WithCancel(p.context)
-				defer cancel()
+// балансировщик ТЕМ, РАЗДЕЛОВ и шрупп ПОТРЕБИТЕЛЕЙ
+func (gf *GafkaEmitter) createTopicCoordinatorListener(topic string, partitions int) {
+	go func(t string, parts int) {
+		// тут надо подумать ибо есть некоторое дублирование
+		// существует еще глобальное состояние ПОДПИСЧИКОВ
+		// потом надо будет отредактировать
+		consumerInGroup := map[string]map[int]int{}
 
-				for {
-					select {
-					case <-ctx.Done():
-						return
-					case message := <-p.messagePool:
-						p.mu.Lock()
-						p.messages[message.topic][part] = append(p.messages[message.topic][part], message.message)
-						p.mu.Unlock()
+		for {
+			select {
+			case <-gf.context.Done():
+				return
+			case change := <-gf.changeConsumers[t]:
+				logln("Обнаружены изменения в балансе подписчиков, начинаю процес РЕБАЛАНСИРОВКИ подписчиков")
+
+				topic := t
+				group := change.group
+				uniqId := change.id
+				partition := parts
+
+				if _, ok := consumerInGroup[group]; !ok {
+					consumerInGroup[group] = map[int]int{}
+				}
+
+				if change.in == InConsumer {
+					consumerInGroup[group][uniqId] = 1
+				} else {
+					delete(consumerInGroup[group], uniqId)
+				}
+
+				gf.mu.Lock()
+
+				// check partition identifiers
+				if _, ok := gf.freePartitions[topic][group]; !ok {
+					// create new identifiers
+					gf.UNSAFE_CreateFreePartitions(topic, group)
+				}
+
+				partOneConsumer := float64(partition) / float64(len(consumerInGroup[group]))
+
+				// 4 + 0.5 => 5
+				// 3.9 + 0.5 => 4
+				need := int(math.Round(partOneConsumer + 0.49))
+
+				gf.partitionListeners[topic][group] = map[int][]int{}
+				gf.UNSAFE_CreateFreePartitions(topic, group)
+
+				for consumer := range consumerInGroup[group] {
+					for part := range gf.freePartitions[topic][group] {
+						if len(gf.partitionListeners[topic][group][consumer]) >= need {
+							break
+						}
+
+						gf.partitionListeners[topic][group][consumer] = append(gf.partitionListeners[topic][group][consumer], part)
+						delete(gf.freePartitions[topic][group], part)
 					}
 				}
-			}(partition)
+
+				logln("Подписчик", uniqId, "слушает селудющие РАЗДЕЛЫ", gf.partitionListeners[topic][group][uniqId])
+
+				gf.mu.Unlock()
+			}
 		}
-	}
+	}(topic, partitions)
 }
 
-func (p *PubSub) Subscribe(c context.Context, topic string, group string, handler func([]string)) error {
-	ctx, cancel := context.WithCancel(c)
-	defer cancel()
+// Распаралеливаем сообщения ТЕМЫ по разным РАЗДЕЛАМ, каждый раздел работает в своем потоке
+// возможно есть варианты получше, надо думать
+func (gf *GafkaEmitter) createTopicPartitionListener(topic string, partition int) {
+	go func(top string, part int) {
+		// для каждого слушателя по своему контексту, образованного от ведущего контекста всей Gafkd
+		ctx, cancel := context.WithCancel(gf.context)
 
-	p.mu.Lock()
+		defer func() {
+			cancel()
 
-	// todo return error if topic not exist, no create topic
-	if subs, ok := p.consumers[topic]; !ok || subs == nil {
-		p.consumers[topic] = map[string]map[int]chan string{}
-	}
+			logln("Cancel topic listener: ", top, " partition: ", part)
+		}()
 
-	if _, ok := p.consumers[topic][group]; !ok {
-		p.consumers[topic][group] = map[int]chan string{}
-	}
+		logln("Make topic listener: ", top, " partition: ", part)
 
-	if _, ok := p.offsets[topic][group]; !ok {
-		p.offsets[topic][group] = 0
-	}
-
-	// todo balance between partitions and consumer groups
-	// read random partition
-	partition := 3
-
-	// todo remove
-	subscriber := make(chan string, 10)
-	p.consumers[topic][group][partition] = subscriber
-
-	p.mu.Unlock()
-
-	defer func() {
-		p.mu.Lock()
-		delete(p.consumers[topic][group], partition)
-		p.mu.Unlock()
-	}()
-
-	defer close(subscriber)
-
-	// batch size
-	batch := 20
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-		}
-
-		p.mu.RLock()
-
-		//fmt.Println(p.messages[topic])
-
-		// calculate offset for consumer group
-		i := p.offsets[topic][group]
-		l := uint64(len(p.messages[topic][partition]))
-
-		p.mu.RUnlock()
-
-		j := i + uint64(batch)
-
-		if j > l {
-			j = l
-		}
-
-		if j-i > 0 {
-			p.mu.Lock()
-			p.offsets[topic][group] = j
-			p.mu.Unlock()
-
-			p.mu.RLock()
-			// read batched messages
-			messages := p.messages[topic][partition][i:j]
-			p.mu.RUnlock()
-
-			// send to cunsumer
-			if len(messages) > 0 {
-				handler(messages)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case message := <-gf.messagePools[top]:
+				gf.addMessage(top, part, message)
 			}
 		}
 
-		// todo
-		time.Sleep(time.Millisecond * 5)
-	}
+	}(topic, partition)
 }
 
-func (p *PubSub) Publish(topic string, message string) {
-	p.mu.RLock()
-	if p.closed {
-		p.mu.RUnlock()
-		return
-	}
-	p.mu.RUnlock()
-
-	// todo add config: TOPIC AUTO CREATE with partitions default
-	if v, ok := p.consumers[topic]; !ok || v == nil {
-		p.mu.Lock()
-		p.unsafeCreatePartitions(topic, 1)
-		p.mu.Unlock()
-	}
-
-	p.messagePool <- Message{
-		topic:   topic,
-		message: message,
-	}
-}
-
-func (p *PubSub) Close() {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if !p.closed {
-		p.closed = true
-	}
-
-	// todo
-	for topic, _ := range p.consumers {
-		delete(p.consumers, topic)
-	}
+// добавляем сообщение в конкретный РАЗДЕЛ целевой ТЕМЫ
+// заменить эту херь интефейсом
+func (gf *GafkaEmitter) addMessage(topic string, part int, message string) {
+	gf.mu.Lock()
+	gf.messages[topic][part] = append(gf.messages[topic][part], message)
+	gf.mu.Unlock()
 }
