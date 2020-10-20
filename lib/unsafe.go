@@ -7,7 +7,7 @@ func (gf GafkaEmitter) UNSAFE_PeekTopicMessagesByOffset(topic string, partition 
 }
 
 func (gf *GafkaEmitter) UNSAFE_FlushConsumerPartitions(topic, group string) {
-	gf.partitionListeners[topic][group] = map[int][]int{}
+	gf.consumers[topic][group] = map[int][]int{}
 }
 
 func (gf *GafkaEmitter) UNSAFE_TakePartition(topic, group string, part int) {
@@ -15,7 +15,7 @@ func (gf *GafkaEmitter) UNSAFE_TakePartition(topic, group string, part int) {
 }
 
 func (gf *GafkaEmitter) UNSAFE_LinkConsumerToPartiton(topic, group string, consumer, part int) {
-	gf.partitionListeners[topic][group][consumer] = append(gf.partitionListeners[topic][group][consumer], part)
+	gf.consumers[topic][group][consumer] = append(gf.consumers[topic][group][consumer], part)
 }
 
 func (gf *GafkaEmitter) UNSAFE_CreateFreePartitions(topic, group string) {
@@ -43,10 +43,9 @@ func (gf *GafkaEmitter) UNSAFE_CreateTopic(topic Topic) {
 	gf.observers[topic.Name] = make(chan observer)
 	gf.topics[topic.Name] = topic.Partitions
 	gf.UNSAFE_CreateTopicPartitions(topic.Name, topic.Partitions)
-	gf.consumers[topic.Name] = map[string]map[int]chan ReceiveMessage{}
 	gf.offsets[topic.Name] = map[string]map[int]uint64{}
 	gf.messagePools[topic.Name] = make(chan string)
-	gf.partitionListeners[topic.Name] = map[string]map[int][]int{}
+	gf.consumers[topic.Name] = map[string]map[int][]int{}
 	gf.freePartitions[topic.Name] = map[string]map[int]int{}
 }
 

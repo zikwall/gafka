@@ -36,7 +36,7 @@ func TestConsumers(t *testing.T) {
 
 		gafka := lib.Gafka(ctx, lib.Configuration{
 			BatchSize:       10,
-			ReclaimInterval: time.Second * 1,
+			ReclaimInterval: time.Millisecond * 100,
 			Topics:          bootstrapTopics,
 		})
 
@@ -79,7 +79,7 @@ func TestConsumers(t *testing.T) {
 
 		gafka := lib.Gafka(ctx, lib.Configuration{
 			BatchSize:       10,
-			ReclaimInterval: time.Second * 1,
+			ReclaimInterval: time.Millisecond * 100,
 			Topics:          bootstrapTopics,
 		})
 
@@ -138,7 +138,7 @@ func TestConsumers(t *testing.T) {
 
 		gafka := lib.Gafka(ctx, lib.Configuration{
 			BatchSize:       10,
-			ReclaimInterval: time.Second * 2,
+			ReclaimInterval: time.Millisecond * 100,
 			Topics:          bootstrapTopics,
 		})
 

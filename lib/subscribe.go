@@ -12,7 +12,7 @@ func (gf *GafkaEmitter) Subscribe(c context.Context, topic, group string, handle
 
 	gf.mu.RLock()
 
-	if v, ok := gf.consumers[topic]; !ok || v == nil {
+	if capacity, ok := gf.topics[topic]; !ok || capacity == 0 {
 		gf.mu.RUnlock()
 		return errors.New("Кажется тема, куда вы хотите слушать не существует! Перепроверь, але!"), nil
 	}
@@ -25,11 +25,10 @@ func (gf *GafkaEmitter) Subscribe(c context.Context, topic, group string, handle
 	channel := make(chan ReceiveMessage, 10)
 
 	gf.observers[topic] <- observer{
-		topic:   topic,
-		group:   group,
-		id:      uniqId,
-		in:      InConsumer,
-		channel: channel,
+		topic: topic,
+		group: group,
+		id:    uniqId,
+		in:    InConsumer,
 	}
 
 	// слушаем лучше так, да
@@ -49,11 +48,10 @@ func (gf *GafkaEmitter) Subscribe(c context.Context, topic, group string, handle
 	go func() {
 		defer func() {
 			gf.observers[topic] <- observer{
-				topic:   topic,
-				group:   group,
-				id:      uniqId,
-				in:      OutConsumer,
-				channel: channel,
+				topic: topic,
+				group: group,
+				id:    uniqId,
+				in:    OutConsumer,
 			}
 		}()
 
@@ -69,7 +67,7 @@ func (gf *GafkaEmitter) Subscribe(c context.Context, topic, group string, handle
 				gf.mu.RLock()
 
 				// забираем данные только из тех РАЗДЕЛОВ, которые мы слушаем, КЕП, этож очевидно..
-				for _, partition := range gf.partitionListeners[topic][group][uniqId] {
+				for _, partition := range gf.consumers[topic][group][uniqId] {
 					// вычисляем текущий офсет для того, чтобы забирать только новые данные
 					currentOffset := gf.UNSAFE_PeekOffsetForConsumerGroup(topic, group, partition)
 					count := gf.UNSAFE_PeekPartitionLength(topic, partition)

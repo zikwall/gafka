@@ -9,7 +9,7 @@ func (gf *GafkaEmitter) Publish(topic string, message string) error {
 		return errors.New("Эй! Брокер уже не работает, вывеска висит не видишь чтоле?!")
 	}
 
-	if v, ok := gf.consumers[topic]; !ok || v == nil {
+	if capacity, ok := gf.topics[topic]; !ok || capacity == 0 {
 		gf.mu.RUnlock()
 		return errors.New("Кажется тема, куда вы хотите опубликовать сообщение не существует! Перепроверь, але!")
 	}
