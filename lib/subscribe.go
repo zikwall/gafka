@@ -65,12 +65,18 @@ func (gf *GafkaEmitter) Subscribe(c context.Context, topic, group string, handle
 				logln("Пробуем запросить данные...")
 
 				gf.mu.RLock()
+				partitions := gf.consumers[topic][group][uniqId]
+				gf.mu.RUnlock()
 
 				// забираем данные только из тех РАЗДЕЛОВ, которые мы слушаем, КЕП, этож очевидно..
-				for _, partition := range gf.consumers[topic][group][uniqId] {
+				for _, partition := range partitions {
+					gf.mu.RLock()
+
 					// вычисляем текущий офсет для того, чтобы забирать только новые данные
 					currentOffset := gf.UNSAFE_PeekOffsetForConsumerGroup(topic, group, partition)
 					count := gf.UNSAFE_PeekPartitionLength(topic, partition)
+
+					gf.mu.RUnlock()
 
 					if currentOffset == count {
 						continue
@@ -82,8 +88,12 @@ func (gf *GafkaEmitter) Subscribe(c context.Context, topic, group string, handle
 						newOffset = count
 					}
 
+					gf.mu.Lock()
+
 					messages := gf.UNSAFE_PeekTopicMessagesByOffset(topic, partition, currentOffset, newOffset)
 					gf.UNSAFE_CommitOffset(topic, group, partition, newOffset)
+
+					gf.mu.Unlock()
 
 					if len(messages) > 0 {
 						channel <- ReceiveMessage{
@@ -93,8 +103,6 @@ func (gf *GafkaEmitter) Subscribe(c context.Context, topic, group string, handle
 						}
 					}
 				}
-
-				gf.mu.RUnlock()
 			}
 		}
 	}()
