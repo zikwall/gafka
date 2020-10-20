@@ -21,6 +21,11 @@ type observer struct {
 }
 
 type (
+	SubscribeConf struct {
+		Topic   string
+		Group   string
+		Handler func(message ReceiveMessage)
+	}
 	Topic struct {
 		Name       string
 		Partitions int

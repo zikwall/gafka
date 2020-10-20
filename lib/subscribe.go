@@ -7,12 +7,12 @@ import (
 	"time"
 )
 
-func (gf *GafkaEmitter) Subscribe(c context.Context, topic, group string, handle func(message ReceiveMessage)) (error, func()) {
+func (gf *GafkaEmitter) Subscribe(c context.Context, conf SubscribeConf) (error, func()) {
 	ctx, cancel := context.WithCancel(c)
 
 	gf.mu.RLock()
 
-	if capacity, ok := gf.topics[topic]; !ok || capacity == 0 {
+	if capacity, ok := gf.topics[conf.Topic]; !ok || capacity == 0 {
 		gf.mu.RUnlock()
 		return errors.New("Кажется тема, куда вы хотите слушать не существует! Перепроверь, але!"), nil
 	}
@@ -24,9 +24,9 @@ func (gf *GafkaEmitter) Subscribe(c context.Context, topic, group string, handle
 	// надо подумать над буфером, в этот канал отправляются все считанные данные
 	channel := make(chan ReceiveMessage, 10)
 
-	gf.observers[topic] <- observer{
-		topic: topic,
-		group: group,
+	gf.observers[conf.Topic] <- observer{
+		topic: conf.Topic,
+		group: conf.Group,
 		id:    uniqId,
 		in:    InConsumer,
 	}
@@ -40,16 +40,16 @@ func (gf *GafkaEmitter) Subscribe(c context.Context, topic, group string, handle
 			case <-ctx.Done():
 				return
 			case messages := <-channel:
-				handle(messages)
+				conf.Handler(messages)
 			}
 		}
 	}()
 
 	go func() {
 		defer func() {
-			gf.observers[topic] <- observer{
-				topic: topic,
-				group: group,
+			gf.observers[conf.Topic] <- observer{
+				topic: conf.Topic,
+				group: conf.Group,
 				id:    uniqId,
 				in:    OutConsumer,
 			}
@@ -65,7 +65,7 @@ func (gf *GafkaEmitter) Subscribe(c context.Context, topic, group string, handle
 				logln("Пробуем запросить данные...")
 
 				gf.mu.RLock()
-				partitions := gf.consumers[topic][group][uniqId]
+				partitions := gf.consumers[conf.Topic][conf.Group][uniqId]
 				gf.mu.RUnlock()
 
 				// забираем данные только из тех РАЗДЕЛОВ, которые мы слушаем, КЕП, этож очевидно..
@@ -73,8 +73,8 @@ func (gf *GafkaEmitter) Subscribe(c context.Context, topic, group string, handle
 					gf.mu.RLock()
 
 					// вычисляем текущий офсет для того, чтобы забирать только новые данные
-					currentOffset := gf.UNSAFE_PeekOffsetForConsumerGroup(topic, group, partition)
-					count := gf.UNSAFE_PeekPartitionLength(topic, partition)
+					currentOffset := gf.UNSAFE_PeekOffsetForConsumerGroup(conf.Topic, conf.Group, partition)
+					count := gf.UNSAFE_PeekPartitionLength(conf.Topic, partition)
 
 					gf.mu.RUnlock()
 
@@ -90,14 +90,14 @@ func (gf *GafkaEmitter) Subscribe(c context.Context, topic, group string, handle
 
 					gf.mu.Lock()
 
-					messages := gf.UNSAFE_PeekTopicMessagesByOffset(topic, partition, currentOffset, newOffset)
-					gf.UNSAFE_CommitOffset(topic, group, partition, newOffset)
+					messages := gf.UNSAFE_PeekTopicMessagesByOffset(conf.Topic, partition, currentOffset, newOffset)
+					gf.UNSAFE_CommitOffset(conf.Topic, conf.Group, partition, newOffset)
 
 					gf.mu.Unlock()
 
 					if len(messages) > 0 {
 						channel <- ReceiveMessage{
-							Topic:     topic,
+							Topic:     conf.Topic,
 							Partition: partition,
 							Messages:  messages,
 						}

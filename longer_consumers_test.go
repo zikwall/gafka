@@ -40,8 +40,12 @@ func TestConsumers(t *testing.T) {
 			Topics:          bootstrapTopics,
 		})
 
-		err, unsubscribe := gafka.Subscribe(ctx, "testTopicName", "group1", func(message lib.ReceiveMessage) {
-			collect.append(message.Messages)
+		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+			Topic: "testTopicName",
+			Group: "group1",
+			Handler: func(message lib.ReceiveMessage) {
+				collect.append(message.Messages)
+			},
 		})
 
 		defer unsubscribe()
@@ -83,8 +87,12 @@ func TestConsumers(t *testing.T) {
 			Topics:          bootstrapTopics,
 		})
 
-		err, unsubscribe := gafka.Subscribe(ctx, "testTopicName", "group1", func(message lib.ReceiveMessage) {
-			collect.append(message.Messages)
+		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+			Topic: "testTopicName",
+			Group: "group1",
+			Handler: func(message lib.ReceiveMessage) {
+				collect.append(message.Messages)
+			},
 		})
 
 		defer unsubscribe()
@@ -93,8 +101,12 @@ func TestConsumers(t *testing.T) {
 			log.Fatal(err)
 		}
 
-		err, unsubscribe2 := gafka.Subscribe(ctx, "testTopicName", "group1", func(message lib.ReceiveMessage) {
-			collect.append(message.Messages)
+		err, unsubscribe2 := gafka.Subscribe(ctx, lib.SubscribeConf{
+			Topic: "testTopicName",
+			Group: "group1",
+			Handler: func(message lib.ReceiveMessage) {
+				collect.append(message.Messages)
+			},
 		})
 
 		go func() {
@@ -143,15 +155,23 @@ func TestConsumers(t *testing.T) {
 		})
 
 		// GROUP 1
-		err, unsubscribe := gafka.Subscribe(ctx, "testTopicName", "group1", func(message lib.ReceiveMessage) {
-			collect.append(message.Messages)
+		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+			Topic: "testTopicName",
+			Group: "group1",
+			Handler: func(message lib.ReceiveMessage) {
+				collect.append(message.Messages)
+			},
 		})
 
 		defer unsubscribe()
 
 		// GROUP 2
-		err, unsubscribe2 := gafka.Subscribe(ctx, "testTopicName", "group2", func(message lib.ReceiveMessage) {
-			collect.append(message.Messages)
+		err, unsubscribe2 := gafka.Subscribe(ctx, lib.SubscribeConf{
+			Topic: "testTopicName",
+			Group: "group2",
+			Handler: func(message lib.ReceiveMessage) {
+				collect.append(message.Messages)
+			},
 		})
 
 		defer unsubscribe2()
