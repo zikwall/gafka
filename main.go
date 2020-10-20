@@ -23,11 +23,15 @@ func main() {
 		Topics:          bootstrapTopics,
 	})
 
-	err, unsubscribe := gafka.Subscribe(ctx, topic, "group1", func(message lib.ReceiveMessage) {
-		//log.Println("First")
-		//log.Println(message.Topic)
-		//log.Println(message.Partition)
-		//log.Println(message.Messages)
+	err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+		Topic: topic,
+		Group: "group1",
+		Handler: func(message lib.ReceiveMessage) {
+			//log.Println("First")
+			//log.Println(message.Topic)
+			//log.Println(message.Partition)
+			//log.Println(message.Messages)
+		},
 	})
 
 	go func() {
@@ -44,11 +48,15 @@ func main() {
 	go func() {
 		time.Sleep(3 * time.Second)
 
-		err, unsubscribe := gafka.Subscribe(ctx, topic, "group1", func(message lib.ReceiveMessage) {
-			//log.Println("Second")
-			//log.Println(message.Topic)
-			//log.Println(message.Partition)
-			//log.Println(message.Messages)
+		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+			Topic: topic,
+			Group: "group1",
+			Handler: func(message lib.ReceiveMessage) {
+				//log.Println("Second")
+				//log.Println(message.Topic)
+				//log.Println(message.Partition)
+				//log.Println(message.Messages)
+			},
 		})
 
 		defer unsubscribe()
@@ -63,11 +71,15 @@ func main() {
 	go func() {
 		time.Sleep(5 * time.Second)
 
-		err, unsubscribe := gafka.Subscribe(ctx, topic, "group1", func(message lib.ReceiveMessage) {
-			//log.Println("Third")
-			//log.Println(message.Topic)
-			//log.Println(message.Partition)
-			//log.Println(message.Messages)
+		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+			Topic: topic,
+			Group: "group1",
+			Handler: func(message lib.ReceiveMessage) {
+				//log.Println("Third")
+				//log.Println(message.Topic)
+				//log.Println(message.Partition)
+				//log.Println(message.Messages)
+			},
 		})
 
 		defer unsubscribe()
@@ -82,11 +94,15 @@ func main() {
 	go func() {
 		time.Sleep(7 * time.Second)
 
-		err, unsubscribe := gafka.Subscribe(ctx, topic, "group1", func(message lib.ReceiveMessage) {
-			//log.Println("Four")
-			//log.Println(message.Topic)
-			//log.Println(message.Partition)
-			//log.Println(message.Messages)
+		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+			Topic: topic,
+			Group: "group1",
+			Handler: func(message lib.ReceiveMessage) {
+				//log.Println("Four")
+				//log.Println(message.Topic)
+				//log.Println(message.Partition)
+				//log.Println(message.Messages)
+			},
 		})
 
 		defer unsubscribe()
@@ -101,11 +117,15 @@ func main() {
 	go func() {
 		time.Sleep(9 * time.Second)
 
-		err, unsubscribe := gafka.Subscribe(ctx, topic, "group1", func(message lib.ReceiveMessage) {
-			//log.Println("Five")
-			//log.Println(message.Topic)
-			//log.Println(message.Partition)
-			//log.Println(message.Messages)
+		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+			Topic: topic,
+			Group: "group1",
+			Handler: func(message lib.ReceiveMessage) {
+				//log.Println("Five")
+				//log.Println(message.Topic)
+				//log.Println(message.Partition)
+				//log.Println(message.Messages)
+			},
 		})
 
 		defer unsubscribe()
@@ -120,11 +140,15 @@ func main() {
 	go func() {
 		time.Sleep(11 * time.Second)
 
-		err, unsubscribe := gafka.Subscribe(ctx, topic, "group1", func(message lib.ReceiveMessage) {
-			//log.Println("Six")
-			//log.Println(message.Topic)
-			//log.Println(message.Partition)
-			//log.Println(message.Messages)
+		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+			Topic: topic,
+			Group: "group1",
+			Handler: func(message lib.ReceiveMessage) {
+				//log.Println("Six")
+				//log.Println(message.Topic)
+				//log.Println(message.Partition)
+				//log.Println(message.Messages)
+			},
 		})
 
 		defer unsubscribe()
@@ -139,11 +163,15 @@ func main() {
 	go func() {
 		time.Sleep(13 * time.Second)
 
-		err, unsubscribe := gafka.Subscribe(ctx, topic, "group1", func(message lib.ReceiveMessage) {
-			//log.Println("Six")
-			//log.Println(message.Topic)
-			//log.Println(message.Partition)
-			//log.Println(message.Messages)
+		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+			Topic: topic,
+			Group: "group1",
+			Handler: func(message lib.ReceiveMessage) {
+				//log.Println("Seven")
+				//log.Println(message.Topic)
+				//log.Println(message.Partition)
+				//log.Println(message.Messages)
+			},
 		})
 
 		defer unsubscribe()
