@@ -2,6 +2,22 @@ package lib
 
 // использовать эти методы запределами строго воспрещается!
 
+func (gf GafkaEmitter) UNSAFE_PeekTopicMessagesByOffset(topic string, partition int, a, b uint64) []string {
+	return gf.messages[topic][partition][a:b]
+}
+
+func (gf *GafkaEmitter) UNSAFE_FlushConsumerPartitions(topic, group string) {
+	gf.partitionListeners[topic][group] = map[int][]int{}
+}
+
+func (gf *GafkaEmitter) UNSAFE_TakePartition(topic, group string, part int) {
+	delete(gf.freePartitions[topic][group], part)
+}
+
+func (gf *GafkaEmitter) UNSAFE_LinkConsumerToPartiton(topic, group string, consumer, part int) {
+	gf.partitionListeners[topic][group][consumer] = append(gf.partitionListeners[topic][group][consumer], part)
+}
+
 func (gf *GafkaEmitter) UNSAFE_CreateFreePartitions(topic, group string) {
 	gf.freePartitions[topic][group] = map[int]int{}
 
@@ -24,10 +40,10 @@ func (gf GafkaEmitter) UNSAFE_PeekPartitionLength(topic string, partition int) u
 
 func (gf *GafkaEmitter) UNSAFE_CreateTopic(topic Topic) {
 	// не стоит сюды смотреть...
-	gf.changeConsumers[topic.Name] = make(chan direction)
+	gf.observers[topic.Name] = make(chan observer)
 	gf.topics[topic.Name] = topic.Partitions
 	gf.UNSAFE_CreateTopicPartitions(topic.Name, topic.Partitions)
-	gf.consumers[topic.Name] = map[string]map[int]chan []string{}
+	gf.consumers[topic.Name] = map[string]map[int]chan ReceiveMessage{}
 	gf.offsets[topic.Name] = map[string]map[int]uint64{}
 	gf.messagePools[topic.Name] = make(chan string)
 	gf.partitionListeners[topic.Name] = map[string]map[int][]int{}

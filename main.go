@@ -9,6 +9,8 @@ import (
 )
 
 func main() {
+	topic := "testTopicName"
+
 	ctx := context.Background()
 
 	bootstrapTopics := []lib.Topic{
@@ -21,46 +23,32 @@ func main() {
 		Topics:          bootstrapTopics,
 	})
 
-	err, unsubscribe := gafka.Subscribe(ctx, "testTopicName", "group1", func(messages []string) {
-		log.Println("First ", messages)
+	err, unsubscribe := gafka.Subscribe(ctx, topic, "group1", func(message lib.ReceiveMessage) {
+		//log.Println("First")
+		//log.Println(message.Topic)
+		//log.Println(message.Partition)
+		//log.Println(message.Messages)
 	})
 
-	defer unsubscribe()
+	go func() {
+		// advanced test
+		// cancel consumer after 11 seconds
+		time.Sleep(time.Second * 6)
+		unsubscribe()
+	}()
 
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	err, unsubscribe2 := gafka.Subscribe(ctx, "testTopicName", "group2", func(messages []string) {
-		log.Println("Second ", messages)
-	})
-
-	defer unsubscribe2()
-
-	//go func() {
-	//time.Sleep(13 * time.Second)
-	//unsubscribe2()
-	//}()
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	/*err, unsubscribe3 := gafka.Subscribe(ctx, "testTopicName", "group1", func(messages []string) {
-		log.Println("Third ", messages)
-	})
-
-	defer unsubscribe3()
-
-	if err != nil {
-		log.Fatal(err)
-	}*/
 
 	go func() {
 		time.Sleep(3 * time.Second)
 
-		err, unsubscribe := gafka.Subscribe(ctx, "testTopicName", "group1", func(messages []string) {
-			log.Println("Four ", messages)
+		err, unsubscribe := gafka.Subscribe(ctx, topic, "group1", func(message lib.ReceiveMessage) {
+			//log.Println("Second")
+			//log.Println(message.Topic)
+			//log.Println(message.Partition)
+			//log.Println(message.Messages)
 		})
 
 		defer unsubscribe()
@@ -75,8 +63,11 @@ func main() {
 	go func() {
 		time.Sleep(5 * time.Second)
 
-		err, unsubscribe := gafka.Subscribe(ctx, "testTopicName", "group1", func(messages []string) {
-			log.Println("Five ", messages)
+		err, unsubscribe := gafka.Subscribe(ctx, topic, "group1", func(message lib.ReceiveMessage) {
+			//log.Println("Third")
+			//log.Println(message.Topic)
+			//log.Println(message.Partition)
+			//log.Println(message.Messages)
 		})
 
 		defer unsubscribe()
@@ -89,10 +80,13 @@ func main() {
 	}()
 
 	go func() {
-		time.Sleep(8 * time.Second)
+		time.Sleep(7 * time.Second)
 
-		err, unsubscribe := gafka.Subscribe(ctx, "testTopicName", "group2", func(messages []string) {
-			log.Println("Five ", messages)
+		err, unsubscribe := gafka.Subscribe(ctx, topic, "group1", func(message lib.ReceiveMessage) {
+			//log.Println("Four")
+			//log.Println(message.Topic)
+			//log.Println(message.Partition)
+			//log.Println(message.Messages)
 		})
 
 		defer unsubscribe()
@@ -104,14 +98,79 @@ func main() {
 		time.Sleep(1000 * time.Second)
 	}()
 
-	for i := 0; i <= 100; i++ {
-		if err := gafka.Publish("testTopicName", fmt.Sprintf("message #%d", i)); err != nil {
+	go func() {
+		time.Sleep(9 * time.Second)
+
+		err, unsubscribe := gafka.Subscribe(ctx, topic, "group1", func(message lib.ReceiveMessage) {
+			//log.Println("Five")
+			//log.Println(message.Topic)
+			//log.Println(message.Partition)
+			//log.Println(message.Messages)
+		})
+
+		defer unsubscribe()
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		time.Sleep(1000 * time.Second)
+	}()
+
+	go func() {
+		time.Sleep(11 * time.Second)
+
+		err, unsubscribe := gafka.Subscribe(ctx, topic, "group1", func(message lib.ReceiveMessage) {
+			//log.Println("Six")
+			//log.Println(message.Topic)
+			//log.Println(message.Partition)
+			//log.Println(message.Messages)
+		})
+
+		defer unsubscribe()
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		time.Sleep(1000 * time.Second)
+	}()
+
+	go func() {
+		time.Sleep(13 * time.Second)
+
+		err, unsubscribe := gafka.Subscribe(ctx, topic, "group1", func(message lib.ReceiveMessage) {
+			//log.Println("Six")
+			//log.Println(message.Topic)
+			//log.Println(message.Partition)
+			//log.Println(message.Messages)
+		})
+
+		defer unsubscribe()
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		time.Sleep(1000 * time.Second)
+	}()
+
+	for i := 0; i <= 500; i++ {
+		if err := gafka.Publish(topic, fmt.Sprintf("message #%d", i)); err != nil {
 			fmt.Println(err)
 		}
 
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	// todo pubsriber.Wait()
+	// todo gafka.Wait() - for simple
+	// or advanced
+	// go func() {
+	//    if err := gafka.Listen(); err != nil {
+	// 		...
+	//    }
+	// }()
+	//
+	// gafka.WaitSysNotify() with gafka.Shutdown()
 	time.Sleep(1000 * time.Second)
 }
