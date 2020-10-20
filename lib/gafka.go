@@ -45,17 +45,14 @@ type (
 		cancel  context.CancelFunc
 		config  Configuration
 
-		// topic:group:unique -> message channel
-		consumers map[string]map[string]map[int]chan ReceiveMessage
-
 		// topic:group:partition -> offset for consumer group
 		offsets map[string]map[string]map[int]uint64
 
 		// topic:partitions
 		topics map[string]int
 
-		// topic:group:partition:unique
-		partitionListeners map[string]map[string]map[int][]int
+		// topic:group:unique:partitions
+		consumers map[string]map[string]map[int][]int
 
 		// topic:group:partition
 		// возможно позже получится упростить схему, но пока так
@@ -93,12 +90,11 @@ func Gafka(ctx context.Context, c Configuration) *GafkaEmitter {
 
 	// ну тут конечно полный трешак, нужен конкретный ревью
 	// возможно от части можно вообще избавиться
-	gf.consumers = map[string]map[string]map[int]chan ReceiveMessage{}
 	gf.offsets = map[string]map[string]map[int]uint64{}
 	gf.topics = make(map[string]int, len(c.Topics))
 	gf.messages = map[string]map[int][]string{}
 	gf.messagePools = map[string]chan string{}
-	gf.partitionListeners = map[string]map[string]map[int][]int{}
+	gf.consumers = map[string]map[string]map[int][]int{}
 	gf.freePartitions = map[string]map[string]map[int]int{}
 	gf.observers = map[string]chan observer{}
 
@@ -163,58 +159,37 @@ func (gf *GafkaEmitter) createTopicCoordinatorListener(topic string, partitions 
 
 					consumerInGroup[group][uniqId] = 1
 
-					// check group already exist
-					if _, ok := gf.consumers[topic][group]; !ok {
-						// add new cunsumer group for topic
-						gf.consumers[topic][group] = map[int]chan ReceiveMessage{}
-					}
-
-					// check exist consumer in consumer group
-					if _, ok := gf.consumers[topic][group][uniqId]; !ok {
-						// add new consumer to consumer group
-						gf.consumers[topic][group][uniqId] = make(chan ReceiveMessage)
-					}
-
-					// check offsets for consumer group
 					if _, ok := gf.offsets[topic][group]; !ok {
-						// offsets not exist -> zero
 						gf.offsets[topic][group] = map[int]uint64{}
 					}
 
-					// check partition listeners
-					if _, ok := gf.partitionListeners[topic][group]; !ok {
-						// create new listeners
-						gf.partitionListeners[topic][group] = map[int][]int{}
+					if _, ok := gf.consumers[topic][group]; !ok {
+						gf.consumers[topic][group] = map[int][]int{}
 					}
 
-					// check partition identifiers
 					if _, ok := gf.freePartitions[topic][group]; !ok {
-						// create new identifiers
 						gf.UNSAFE_CreateFreePartitions(topic, group)
 					}
 
-					// добавляем нашего потребителя
-					gf.consumers[topic][group][uniqId] = change.channel
-
 				} else {
 					delete(consumerInGroup[group], uniqId)
-					delete(gf.consumers[topic][group], uniqId)
 
 					logln("Подписчик ушел с ТЕМЫ", topic, "и группы", group, "его айди был", uniqId)
 
+					// todo эта хрень вообще не нужна, вообще
 					// удаляем все прослушиваемые РАЗДЕЛЫ целевой ТЕМЫ, где был замечен этот хитрый слушатель
-					for _, part := range gf.partitionListeners[topic][group][uniqId] {
-						// добавляем РАЗДЕЛ  в раздел безхозных, которые необходимо приютить
+					for _, part := range gf.consumers[topic][group][uniqId] {
 						gf.freePartitions[topic][group][part] = 1
 						logln("Метим РАЗДЕЛ", part, "для группы", group, "свободным")
-						// удаляем из слушателей раздела текущего подписчика
-						delete(gf.partitionListeners[topic][group], uniqId)
+						delete(gf.consumers[topic][group], uniqId)
 						logln("Удаляем слушаетля", uniqId, "из группы", group, "и раздела", part)
 					}
 				}
 
 				partOneConsumer := float64(partition) / float64(len(consumerInGroup[group]))
 
+				// todo нужен более продвинутый алгоритм для равномерно-плавного распределения
+				// потребителей по разделам топика, что они слушают
 				// 4 + 0.5 => 5
 				// 3.9 + 0.5 => 4
 				need := int(math.Round(partOneConsumer + 0.49))
@@ -224,7 +199,7 @@ func (gf *GafkaEmitter) createTopicCoordinatorListener(topic string, partitions 
 
 				for consumer := range consumerInGroup[group] {
 					for part := range gf.freePartitions[topic][group] {
-						if len(gf.partitionListeners[topic][group][consumer]) >= need {
+						if len(gf.consumers[topic][group][consumer]) >= need {
 							break
 						}
 
@@ -234,10 +209,10 @@ func (gf *GafkaEmitter) createTopicCoordinatorListener(topic string, partitions 
 				}
 
 				if change.in == InConsumer {
-					logln("Подписчик", uniqId, "слушает селудющие РАЗДЕЛЫ", gf.partitionListeners[topic][group][uniqId])
+					logln("Подписчик", uniqId, "слушает селудющие РАЗДЕЛЫ", gf.consumers[topic][group][uniqId])
 				}
 
-				logln("Новый порядок таков", gf.partitionListeners[topic][group])
+				logln("Новый порядок таков", gf.consumers[topic][group])
 
 				gf.mu.Unlock()
 			}
