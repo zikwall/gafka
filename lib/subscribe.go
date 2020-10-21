@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-func (gf *GafkaEmitter) Subscribe(c context.Context, conf SubscribeConf) (error, func()) {
-	ctx, cancel := context.WithCancel(c)
+func (gf *GafkaEmitter) Subscribe(conf SubscribeConf) (error, func()) {
+	ctx, cancel := context.WithCancel(gf.context)
 
 	gf.mu.RLock()
 

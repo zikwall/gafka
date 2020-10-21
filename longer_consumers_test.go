@@ -40,7 +40,7 @@ func TestConsumers(t *testing.T) {
 			Topics:          bootstrapTopics,
 		})
 
-		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+		err, unsubscribe := gafka.Subscribe(lib.SubscribeConf{
 			Topic: "testTopicName",
 			Group: "group1",
 			Handler: func(message lib.ReceiveMessage) {
@@ -87,7 +87,7 @@ func TestConsumers(t *testing.T) {
 			Topics:          bootstrapTopics,
 		})
 
-		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+		err, unsubscribe := gafka.Subscribe(lib.SubscribeConf{
 			Topic: "testTopicName",
 			Group: "group1",
 			Handler: func(message lib.ReceiveMessage) {
@@ -101,7 +101,7 @@ func TestConsumers(t *testing.T) {
 			log.Fatal(err)
 		}
 
-		err, unsubscribe2 := gafka.Subscribe(ctx, lib.SubscribeConf{
+		err, unsubscribe2 := gafka.Subscribe(lib.SubscribeConf{
 			Topic: "testTopicName",
 			Group: "group1",
 			Handler: func(message lib.ReceiveMessage) {
@@ -155,7 +155,7 @@ func TestConsumers(t *testing.T) {
 		})
 
 		// GROUP 1
-		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+		err, unsubscribe := gafka.Subscribe(lib.SubscribeConf{
 			Topic: "testTopicName",
 			Group: "group1",
 			Handler: func(message lib.ReceiveMessage) {
@@ -166,7 +166,7 @@ func TestConsumers(t *testing.T) {
 		defer unsubscribe()
 
 		// GROUP 2
-		err, unsubscribe2 := gafka.Subscribe(ctx, lib.SubscribeConf{
+		err, unsubscribe2 := gafka.Subscribe(lib.SubscribeConf{
 			Topic: "testTopicName",
 			Group: "group2",
 			Handler: func(message lib.ReceiveMessage) {

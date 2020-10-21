@@ -46,7 +46,7 @@ func TestCreateTopic(t *testing.T) {
 			}
 		}()
 
-		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+		err, unsubscribe := gafka.Subscribe(lib.SubscribeConf{
 			Topic: topic,
 			Group: "group1",
 			Handler: func(message lib.ReceiveMessage) {
@@ -63,7 +63,7 @@ func TestCreateTopic(t *testing.T) {
 		go func() {
 			time.Sleep(time.Second * 1)
 
-			err, _ := gafka.Subscribe(ctx, lib.SubscribeConf{
+			err, _ := gafka.Subscribe(lib.SubscribeConf{
 				Topic: topic,
 				Group: "group1",
 				Handler: func(message lib.ReceiveMessage) {

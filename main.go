@@ -23,7 +23,7 @@ func main() {
 		Topics:          bootstrapTopics,
 	})
 
-	err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+	err, unsubscribe := gafka.Subscribe(lib.SubscribeConf{
 		Topic: topic,
 		Group: "group1",
 		Handler: func(message lib.ReceiveMessage) {
@@ -48,7 +48,7 @@ func main() {
 	go func() {
 		time.Sleep(3 * time.Second)
 
-		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+		err, unsubscribe := gafka.Subscribe(lib.SubscribeConf{
 			Topic: topic,
 			Group: "group1",
 			Handler: func(message lib.ReceiveMessage) {
@@ -71,7 +71,7 @@ func main() {
 	go func() {
 		time.Sleep(5 * time.Second)
 
-		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+		err, unsubscribe := gafka.Subscribe(lib.SubscribeConf{
 			Topic: topic,
 			Group: "group1",
 			Handler: func(message lib.ReceiveMessage) {
@@ -94,7 +94,7 @@ func main() {
 	go func() {
 		time.Sleep(7 * time.Second)
 
-		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+		err, unsubscribe := gafka.Subscribe(lib.SubscribeConf{
 			Topic: topic,
 			Group: "group1",
 			Handler: func(message lib.ReceiveMessage) {
@@ -117,7 +117,7 @@ func main() {
 	go func() {
 		time.Sleep(9 * time.Second)
 
-		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+		err, unsubscribe := gafka.Subscribe(lib.SubscribeConf{
 			Topic: topic,
 			Group: "group1",
 			Handler: func(message lib.ReceiveMessage) {
@@ -140,7 +140,7 @@ func main() {
 	go func() {
 		time.Sleep(11 * time.Second)
 
-		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+		err, unsubscribe := gafka.Subscribe(lib.SubscribeConf{
 			Topic: topic,
 			Group: "group1",
 			Handler: func(message lib.ReceiveMessage) {
@@ -163,7 +163,7 @@ func main() {
 	go func() {
 		time.Sleep(13 * time.Second)
 
-		err, unsubscribe := gafka.Subscribe(ctx, lib.SubscribeConf{
+		err, unsubscribe := gafka.Subscribe(lib.SubscribeConf{
 			Topic: topic,
 			Group: "group1",
 			Handler: func(message lib.ReceiveMessage) {
@@ -183,22 +183,16 @@ func main() {
 		time.Sleep(1000 * time.Second)
 	}()
 
-	for i := 0; i <= 500; i++ {
-		if err := gafka.Publish(topic, fmt.Sprintf("message #%d", i)); err != nil {
-			fmt.Println(err)
+	go func() {
+		for i := 0; i <= 500; i++ {
+			if err := gafka.Publish(topic, fmt.Sprintf("message #%d", i)); err != nil {
+				fmt.Println(err)
+			}
+
+			time.Sleep(100 * time.Millisecond)
 		}
+	}()
 
-		time.Sleep(100 * time.Millisecond)
-	}
-
-	// todo gafka.Wait() - for simple
-	// or advanced
-	// go func() {
-	//    if err := gafka.Listen(); err != nil {
-	// 		...
-	//    }
-	// }()
-	//
-	// gafka.WaitSysNotify() with gafka.Shutdown()
-	time.Sleep(1000 * time.Second)
+	gafka.WaitSysNotify()
+	gafka.Shutdown()
 }
