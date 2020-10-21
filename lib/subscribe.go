@@ -62,7 +62,7 @@ func (gf *GafkaEmitter) Subscribe(c context.Context, conf SubscribeConf) (error,
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				logln("Пробуем запросить данные...")
+				logln(conf.Topic, conf.Group, uniqId, "->", "Пробуем запросить данные...")
 
 				gf.mu.RLock()
 				partitions := gf.consumers[conf.Topic][conf.Group][uniqId]
