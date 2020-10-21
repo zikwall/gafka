@@ -1,4 +1,4 @@
-![YourActionName Actions Status](https://github.com/goavengers/gafka/workflows/Build and test Gafka/badge.svg)
+[![Build and Test Gafka](https://github.com/goavengers/gafka/workflows/Build%20and%20test%20Gafka/badge.svg)](https://github.com/goavengers/gafka/actions)
 
 <div align="center">
   <h1>Gafka</h1>
