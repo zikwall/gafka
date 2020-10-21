@@ -49,6 +49,8 @@ type (
 		context context.Context
 		cancel  context.CancelFunc
 		config  Configuration
+		done    chan struct{}
+		wg      sync.WaitGroup
 
 		// topic:group:partition -> offset for consumer group
 		offsets map[string]map[string]map[int]uint64
@@ -81,6 +83,8 @@ type (
 
 func Gafka(ctx context.Context, c Configuration) *GafkaEmitter {
 	gf := new(GafkaEmitter)
+	gf.done = make(chan struct{})
+	gf.wg = sync.WaitGroup{}
 
 	if c.BatchSize == 0 {
 		c.BatchSize = 10
@@ -134,7 +138,11 @@ func (gf *GafkaEmitter) coordinator() {
 
 // балансировщик ТЕМ, РАЗДЕЛОВ и шрупп ПОТРЕБИТЕЛЕЙ
 func (gf *GafkaEmitter) createTopicCoordinatorListener(topic string, partitions int) {
+	gf.wg.Add(1)
+
 	go func(t string, parts int) {
+		defer gf.wg.Done()
+
 		// тут надо подумать ибо есть некоторое дублирование
 		// существует еще глобальное состояние ПОДПИСЧИКОВ
 		// потом надо будет отредактировать
@@ -228,12 +236,15 @@ func (gf *GafkaEmitter) createTopicCoordinatorListener(topic string, partitions 
 // Распаралеливаем сообщения ТЕМЫ по разным РАЗДЕЛАМ, каждый раздел работает в своем потоке
 // возможно есть варианты получше, надо думать
 func (gf *GafkaEmitter) createTopicPartitionListener(topic string, partition int) {
+	gf.wg.Add(1)
+
 	go func(top string, part int) {
 		// для каждого слушателя по своему контексту, образованного от ведущего контекста всей Gafkd
 		ctx, cancel := context.WithCancel(gf.context)
 
 		defer func() {
 			cancel()
+			gf.wg.Done()
 
 			logln("Cancel topic listener: ", top, " partition: ", part)
 		}()
