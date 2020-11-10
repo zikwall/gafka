@@ -44,6 +44,7 @@ type (
 		BatchSize       uint8
 		ReclaimInterval time.Duration
 		Topics          []Topic
+		Storage         GafkaStorage
 	}
 	// Сама структура Gafka
 	GafkaEmitter struct {
@@ -83,11 +84,7 @@ type (
 		// topic -> message pool
 		messagePools map[string]chan string
 
-		// Своство хранит все сообщения
-		// topic -> message storage
-		// тут надо подумать над интерфейсом MessageStorage
-		// например, ДИСК, ПАМЯТЬ, еще хер знает где
-		messages map[string]map[int][]string
+		storage GafkaStorage
 
 		// topic:group
 		// канал куда отправляются изменения состояний подписчиков для дальнейшей перебалансировки

@@ -22,11 +22,12 @@ func Gafka(ctx context.Context, c Configuration) *GafkaEmitter {
 	gf.config = c
 	gf.context, gf.cancel = context.WithCancel(ctx)
 
+	gf.storage = c.Storage
+
 	// ну тут конечно полный трешак, нужен конкретный ревью
 	// возможно от части можно вообще избавиться
 	gf.offsets = map[string]map[string]map[int]uint64{}
 	gf.topics = make(map[string]int, len(c.Topics))
-	gf.messages = map[string]map[int][]string{}
 	gf.messagePools = map[string]chan string{}
 	gf.consumers = map[string]map[string]map[int][]int{}
 	gf.freePartitions = map[string]map[string]map[int]int{}
