@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/goavengers/gafka/lib"
+	"github.com/zikwall/gafka/src/core"
 	"log"
 	"sync"
 	"testing"
@@ -30,20 +30,20 @@ func TestConsumers(t *testing.T) {
 
 		ctx := context.Background()
 
-		bootstrapTopics := []lib.Topic{
+		bootstrapTopics := []core.Topic{
 			{Name: "testTopicName", Partitions: 6},
 		}
 
-		gafka := lib.Gafka(ctx, lib.Configuration{
+		gafka := core.Gafka(ctx, core.Configuration{
 			BatchSize:       10,
 			ReclaimInterval: time.Millisecond * 100,
 			Topics:          bootstrapTopics,
 		})
 
-		err, unsubscribe := gafka.Subscribe(lib.SubscribeConf{
+		err, unsubscribe := gafka.Subscribe(core.SubscribeConf{
 			Topic: "testTopicName",
 			Group: "group1",
-			Handler: func(message lib.ReceiveMessage) {
+			Handler: func(message core.ReceiveMessage) {
 				collect.append(message.Messages)
 			},
 		})
@@ -77,20 +77,20 @@ func TestConsumers(t *testing.T) {
 
 		ctx := context.Background()
 
-		bootstrapTopics := []lib.Topic{
+		bootstrapTopics := []core.Topic{
 			{Name: "testTopicName", Partitions: 6},
 		}
 
-		gafka := lib.Gafka(ctx, lib.Configuration{
+		gafka := core.Gafka(ctx, core.Configuration{
 			BatchSize:       10,
 			ReclaimInterval: time.Millisecond * 100,
 			Topics:          bootstrapTopics,
 		})
 
-		err, unsubscribe := gafka.Subscribe(lib.SubscribeConf{
+		err, unsubscribe := gafka.Subscribe(core.SubscribeConf{
 			Topic: "testTopicName",
 			Group: "group1",
-			Handler: func(message lib.ReceiveMessage) {
+			Handler: func(message core.ReceiveMessage) {
 				collect.append(message.Messages)
 			},
 		})
@@ -101,10 +101,10 @@ func TestConsumers(t *testing.T) {
 			log.Fatal(err)
 		}
 
-		err, unsubscribe2 := gafka.Subscribe(lib.SubscribeConf{
+		err, unsubscribe2 := gafka.Subscribe(core.SubscribeConf{
 			Topic: "testTopicName",
 			Group: "group1",
-			Handler: func(message lib.ReceiveMessage) {
+			Handler: func(message core.ReceiveMessage) {
 				collect.append(message.Messages)
 			},
 		})
@@ -144,21 +144,21 @@ func TestConsumers(t *testing.T) {
 
 		ctx := context.Background()
 
-		bootstrapTopics := []lib.Topic{
+		bootstrapTopics := []core.Topic{
 			{Name: "testTopicName", Partitions: 6},
 		}
 
-		gafka := lib.Gafka(ctx, lib.Configuration{
+		gafka := core.Gafka(ctx, core.Configuration{
 			BatchSize:       10,
 			ReclaimInterval: time.Millisecond * 100,
 			Topics:          bootstrapTopics,
 		})
 
 		// GROUP 1
-		err, unsubscribe := gafka.Subscribe(lib.SubscribeConf{
+		err, unsubscribe := gafka.Subscribe(core.SubscribeConf{
 			Topic: "testTopicName",
 			Group: "group1",
-			Handler: func(message lib.ReceiveMessage) {
+			Handler: func(message core.ReceiveMessage) {
 				collect.append(message.Messages)
 			},
 		})
@@ -166,10 +166,10 @@ func TestConsumers(t *testing.T) {
 		defer unsubscribe()
 
 		// GROUP 2
-		err, unsubscribe2 := gafka.Subscribe(lib.SubscribeConf{
+		err, unsubscribe2 := gafka.Subscribe(core.SubscribeConf{
 			Topic: "testTopicName",
 			Group: "group2",
-			Handler: func(message lib.ReceiveMessage) {
+			Handler: func(message core.ReceiveMessage) {
 				collect.append(message.Messages)
 			},
 		})

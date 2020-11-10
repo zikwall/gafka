@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/goavengers/gafka/lib"
+	"github.com/zikwall/gafka/src/core"
 	"log"
 	"sync"
 	"testing"
@@ -21,13 +21,13 @@ func TestCreateTopic(t *testing.T) {
 
 		ctx := context.Background()
 
-		gafka := lib.Gafka(ctx, lib.Configuration{
+		gafka := core.Gafka(ctx, core.Configuration{
 			BatchSize:       10,
 			ReclaimInterval: time.Millisecond * 100,
 			Topics:          nil,
 		})
 
-		err := gafka.CreateTopic(lib.Topic{
+		err := gafka.CreateTopic(core.Topic{
 			Name:       topic,
 			Partitions: 4,
 		})
@@ -46,10 +46,10 @@ func TestCreateTopic(t *testing.T) {
 			}
 		}()
 
-		err, unsubscribe := gafka.Subscribe(lib.SubscribeConf{
+		err, unsubscribe := gafka.Subscribe(core.SubscribeConf{
 			Topic: topic,
 			Group: "group1",
-			Handler: func(message lib.ReceiveMessage) {
+			Handler: func(message core.ReceiveMessage) {
 				collect.append(message.Messages)
 			},
 		})
@@ -63,10 +63,10 @@ func TestCreateTopic(t *testing.T) {
 		go func() {
 			time.Sleep(time.Second * 1)
 
-			err, _ := gafka.Subscribe(lib.SubscribeConf{
+			err, _ := gafka.Subscribe(core.SubscribeConf{
 				Topic: topic,
 				Group: "group1",
-				Handler: func(message lib.ReceiveMessage) {
+				Handler: func(message core.ReceiveMessage) {
 					collect.append(message.Messages)
 				},
 			})

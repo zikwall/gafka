@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"github.com/goavengers/gafka/lib"
 	"github.com/urfave/cli/v2"
+	"github.com/zikwall/gafka/src/core"
 	"log"
 	"os"
 	"time"
@@ -24,7 +24,7 @@ func main() {
 	application.Action = func(c *cli.Context) error {
 		ctx := context.Background()
 
-		gafka := lib.Gafka(ctx, lib.Configuration{
+		gafka := core.Gafka(ctx, core.Configuration{
 			BatchSize:       10,
 			ReclaimInterval: time.Second * 2,
 			Topics:          nil,
