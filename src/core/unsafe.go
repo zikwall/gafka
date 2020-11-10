@@ -39,5 +39,7 @@ func (gf *GafkaEmitter) UNSAFE_CreateTopic(topic Topic) {
 	gf.consumers[topic.Name] = map[string]map[int][]int{}
 	gf.freePartitions[topic.Name] = map[string]map[int]int{}
 
-	gf.storage.InitTopic(topic.Name, topic.Partitions)
+	if err := gf.storage.InitTopic(topic.Name, topic.Partitions); err != nil {
+		logln(err)
+	}
 }
