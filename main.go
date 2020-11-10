@@ -30,11 +30,15 @@ func main() {
 		ctx := context.Background()
 
 		gafka := core.Gafka(ctx, core.Configuration{
-			BatchSize:       10,
-			ReclaimInterval: time.Second * 2,
 			Topics: core.ResolveBootstrappedTopics(
 				c.String("topic_list"),
 			),
+			// todo configurable
+			BatchSize: 10,
+			// todo configurable
+			ReclaimInterval: time.Second * 2,
+			// todo configurable
+			Storage: core.NewInMemoryStorage(),
 		})
 
 		gafka.WaitInternalNotify()

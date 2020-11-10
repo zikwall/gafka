@@ -25,6 +25,7 @@ func TestCreateTopic(t *testing.T) {
 			BatchSize:       10,
 			ReclaimInterval: time.Millisecond * 100,
 			Topics:          nil,
+			Storage:         core.NewInMemoryStorage(),
 		})
 
 		err := gafka.CreateTopic(core.Topic{

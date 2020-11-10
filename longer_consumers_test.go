@@ -38,6 +38,7 @@ func TestConsumers(t *testing.T) {
 			BatchSize:       10,
 			ReclaimInterval: time.Millisecond * 100,
 			Topics:          bootstrapTopics,
+			Storage:         core.NewInMemoryStorage(),
 		})
 
 		err, unsubscribe := gafka.Subscribe(core.SubscribeConf{
@@ -85,6 +86,7 @@ func TestConsumers(t *testing.T) {
 			BatchSize:       10,
 			ReclaimInterval: time.Millisecond * 100,
 			Topics:          bootstrapTopics,
+			Storage:         core.NewInMemoryStorage(),
 		})
 
 		err, unsubscribe := gafka.Subscribe(core.SubscribeConf{
@@ -152,6 +154,7 @@ func TestConsumers(t *testing.T) {
 			BatchSize:       10,
 			ReclaimInterval: time.Millisecond * 100,
 			Topics:          bootstrapTopics,
+			Storage:         core.NewInMemoryStorage(),
 		})
 
 		// GROUP 1
