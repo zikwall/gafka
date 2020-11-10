@@ -14,6 +14,7 @@ This is an experimental project that creates a similar example (or almost) to th
 - [ ] Public API
 - [ ] Server and Gafka Clients
 - [ ] Will review and remove all methods marked as `UNSAFE_`
+- [ ] Packet write in storage interface
 
 ### Tests
 
