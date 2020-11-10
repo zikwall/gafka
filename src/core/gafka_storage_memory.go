@@ -1,6 +1,10 @@
 package core
 
-import "sync"
+import (
+	"errors"
+	"fmt"
+	"sync"
+)
 
 type InMemoryStorage struct {
 	mu *sync.RWMutex
@@ -31,15 +35,21 @@ func (self *InMemoryStorage) PeekMessagesByOffset(topic string, partition int, a
 	return self.messages[topic][partition][a:b]
 }
 
-func (self *InMemoryStorage) InitTopic(topic string, part int) {
+func (self *InMemoryStorage) InitTopic(topic string, part int) error {
 	self.mu.Lock()
 	defer self.mu.Unlock()
+
+	if _, ok := self.messages[topic]; ok {
+		return errors.New(fmt.Sprintf("Topic `%s` aldready exist, not created", topic))
+	}
 
 	self.messages[topic] = make(map[int][]string, part)
 
 	for i := 1; i <= part; i++ {
 		self.messages[topic][i] = []string{}
 	}
+
+	return nil
 }
 
 func (self *InMemoryStorage) AddMessage(topic string, part int, message string) {
