@@ -24,7 +24,7 @@ func (gf *GafkaEmitter) Shutdown() {
 	os.Exit(0)
 }
 
-func (gf GafkaEmitter) WaitSysNotify() {
+func (gf GafkaEmitter) WaitInternalNotify() {
 	sig := make(chan os.Signal)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 

@@ -18,6 +18,11 @@ func main() {
 				Required: true,
 				EnvVars:  []string{"GAFKA_BIND_ADDRESS"},
 			},
+			&cli.StringFlag{
+				Name:    "topic_list",
+				Usage:   "Список названий топиков и их партиций через запятую в формате <String:Int> (topicName:partitions)",
+				EnvVars: []string{"GAFKA_TOPIC_LIST"},
+			},
 		},
 	}
 
@@ -27,10 +32,12 @@ func main() {
 		gafka := core.Gafka(ctx, core.Configuration{
 			BatchSize:       10,
 			ReclaimInterval: time.Second * 2,
-			Topics:          nil,
+			Topics: core.ResolveBootstrappedTopics(
+				c.String("topic_list"),
+			),
 		})
 
-		gafka.WaitSysNotify()
+		gafka.WaitInternalNotify()
 		gafka.Shutdown()
 
 		return nil
