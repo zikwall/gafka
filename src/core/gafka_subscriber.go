@@ -1,4 +1,4 @@
-package lib
+package core
 
 import (
 	"context"
@@ -24,11 +24,11 @@ func (gf *GafkaEmitter) Subscribe(conf SubscribeConf) (error, func()) {
 	// надо подумать над буфером, в этот канал отправляются все считанные данные
 	channel := make(chan ReceiveMessage, 10)
 
-	gf.observers[conf.Topic] <- observer{
-		topic: conf.Topic,
-		group: conf.Group,
-		id:    uniqId,
-		in:    InConsumer,
+	gf.changeNotifier[conf.Topic] <- consumerChangeNotifier{
+		topic:     conf.Topic,
+		group:     conf.Group,
+		id:        uniqId,
+		direction: consumerJoin,
 	}
 
 	// слушаем лучше так, да
@@ -47,11 +47,11 @@ func (gf *GafkaEmitter) Subscribe(conf SubscribeConf) (error, func()) {
 
 	go func() {
 		defer func() {
-			gf.observers[conf.Topic] <- observer{
-				topic: conf.Topic,
-				group: conf.Group,
-				id:    uniqId,
-				in:    OutConsumer,
+			gf.changeNotifier[conf.Topic] <- consumerChangeNotifier{
+				topic:     conf.Topic,
+				group:     conf.Group,
+				id:        uniqId,
+				direction: consumerJoin,
 			}
 		}()
 

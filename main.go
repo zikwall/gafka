@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"github.com/goavengers/gafka/lib"
 	"github.com/urfave/cli/v2"
+	"github.com/zikwall/gafka/src/core"
 	"log"
 	"os"
 	"time"
@@ -18,19 +18,26 @@ func main() {
 				Required: true,
 				EnvVars:  []string{"GAFKA_BIND_ADDRESS"},
 			},
+			&cli.StringFlag{
+				Name:    "topic_list",
+				Usage:   "Список названий топиков и их партиций через запятую в формате <String:Int> (topicName:partitions)",
+				EnvVars: []string{"GAFKA_TOPIC_LIST"},
+			},
 		},
 	}
 
 	application.Action = func(c *cli.Context) error {
 		ctx := context.Background()
 
-		gafka := lib.Gafka(ctx, lib.Configuration{
+		gafka := core.Gafka(ctx, core.Configuration{
 			BatchSize:       10,
 			ReclaimInterval: time.Second * 2,
-			Topics:          nil,
+			Topics: core.ResolveBootstrappedTopics(
+				c.String("topic_list"),
+			),
 		})
 
-		gafka.WaitSysNotify()
+		gafka.WaitInternalNotify()
 		gafka.Shutdown()
 
 		return nil

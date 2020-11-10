@@ -1,4 +1,4 @@
-package lib
+package core
 
 // использовать эти методы запределами строго воспрещается!
 
@@ -40,7 +40,7 @@ func (gf GafkaEmitter) UNSAFE_PeekPartitionLength(topic string, partition int) u
 
 func (gf *GafkaEmitter) UNSAFE_CreateTopic(topic Topic) {
 	// не стоит сюды смотреть...
-	gf.observers[topic.Name] = make(chan observer)
+	gf.changeNotifier[topic.Name] = make(chan consumerChangeNotifier)
 	gf.topics[topic.Name] = topic.Partitions
 	gf.UNSAFE_CreateTopicPartitions(topic.Name, topic.Partitions)
 	gf.offsets[topic.Name] = map[string]map[int]uint64{}
