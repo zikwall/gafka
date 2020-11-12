@@ -51,7 +51,7 @@ func (gf *GafkaEmitter) Subscribe(conf SubscribeConf) (error, func()) {
 				topic:     conf.Topic,
 				group:     conf.Group,
 				id:        uniqId,
-				direction: consumerJoin,
+				direction: consumerLeft,
 			}
 		}()
 
