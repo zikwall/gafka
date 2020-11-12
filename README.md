@@ -12,7 +12,10 @@ This is an experimental project that creates a similar example (or almost) to th
 ### todo
 
 - [ ] Public API
-- [ ] Server and Gafka Clients
+- [ ] Gafka
+    - [ ] Package
+    - [ ] Server (separated from this project and using the package)
+    - [ ] Client
 - [ ] Will review and remove all methods marked as `UNSAFE_`
 - [ ] Packet write in storage interface
 - [ ] Storages
