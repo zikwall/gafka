@@ -15,7 +15,13 @@ This is an experimental project that creates a similar example (or almost) to th
 - [ ] Server and Gafka Clients
 - [ ] Will review and remove all methods marked as `UNSAFE_`
 - [ ] Packet write in storage interface
-- [ ] Sharded in-memory map
+- [ ] Storages
+    - [x] Simple in-memory storage
+    - [x] Sharded in-memory storage, segmenting the map with minimal waiting time for locks
+        - [ ] Sharded partitions like topics
+    - [ ] File storage on disk
+        - [ ] Use hybrid asynchronous disk write scheme
+    - [ ] Another storage...
 
 ### Tests
 
