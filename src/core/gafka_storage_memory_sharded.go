@@ -53,9 +53,9 @@ func (p Partition) GetPartition(partition int) ([]string, bool) {
 }
 
 func (p Partition) PushBack(partition int, message string) {
-	p.mu.RLock()
+	p.mu.Lock()
 	p.messages[partition] = append(p.messages[partition], message)
-	p.mu.RUnlock()
+	p.mu.Unlock()
 }
 
 // Example create
