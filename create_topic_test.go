@@ -79,8 +79,8 @@ func TestCreateTopic(t *testing.T) {
 
 		time.Sleep(10 * time.Second)
 
-		if len(collect.accumulation) != 50 {
-			t.Log("Give count messages:", len(collect.accumulation))
+		if collect.len() != 50 {
+			t.Log("Give count messages:", collect.len())
 			t.Fatal("Give wrong number of messages")
 		}
 	})

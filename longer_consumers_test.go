@@ -21,6 +21,13 @@ func (c *collection) append(messages []string) {
 	c.mu.Unlock()
 }
 
+func (c collection) len() int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return len(c.accumulation)
+}
+
 func TestConsumers(t *testing.T) {
 	t.Run("it should be equal 50 messages", func(t *testing.T) {
 		collect := collection{
@@ -64,8 +71,8 @@ func TestConsumers(t *testing.T) {
 		// synthetic wait consume all messages
 		time.Sleep(10 * time.Second)
 
-		if len(collect.accumulation) != 50 {
-			t.Log("Give count messages:", len(collect.accumulation))
+		if collect.len() != 50 {
+			t.Log("Give count messages:", collect.len())
 			t.Fatal("Give wrong number of messages")
 		}
 	})
@@ -132,8 +139,8 @@ func TestConsumers(t *testing.T) {
 		// synthetic wait consume all messages
 		time.Sleep(15 * time.Second)
 
-		if len(collect.accumulation) != 50 {
-			t.Log("Give count messages:", len(collect.accumulation))
+		if collect.len() != 50 {
+			t.Log("Give count messages:", collect.len())
 			t.Fatal("Give wrong number of messages")
 		}
 	})
@@ -193,8 +200,8 @@ func TestConsumers(t *testing.T) {
 		// synthetic wait consume all messages
 		time.Sleep(12 * time.Second)
 
-		if len(collect.accumulation) != 100 {
-			t.Log("Give count messages:", len(collect.accumulation))
+		if collect.len() != 100 {
+			t.Log("Give count messages:", collect.len())
 			t.Fatal("Give wrong number of messages")
 		}
 	})

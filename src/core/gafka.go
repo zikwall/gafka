@@ -37,9 +37,8 @@ func Gafka(ctx context.Context, c Configuration) *GafkaEmitter {
 		gf.UNSAFE_CreateTopic(topic)
 	}
 
-	// надо подумать над целесообразностью запуска в горутине, пока вроде норм
-	go gf.initBootstrappedTopicListeners()
-	go gf.initConsumerGroupCoordinators()
+	gf.initBootstrappedTopicListeners()
+	gf.initConsumerGroupCoordinators()
 
 	return gf
 }
