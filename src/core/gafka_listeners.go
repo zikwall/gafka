@@ -6,11 +6,15 @@ import "context"
 // нужно будет добавить возможность динамического формирования ТЕМ
 // gafka.AddTopic("topic_name_here", 10)
 func (gf *GafkaEmitter) initBootstrappedTopicListeners() {
-	if len(gf.topics) > 0 {
+	gf.mu.RLock()
+	topicsSnapshot := gf.topics
+	gf.mu.RUnlock()
+
+	if len(topicsSnapshot) > 0 {
 		logln("Init with bootstrapped topics")
 	}
 
-	for topic, partitions := range gf.topics {
+	for topic, partitions := range topicsSnapshot {
 		logln("Init topic ->", topic, "with partitions ->", partitions)
 
 		for partition := 1; partition <= partitions; partition++ {

@@ -32,7 +32,7 @@ func (f Fnv32Hasher) Hash(key string) uint32 {
 type (
 	Shard struct {
 		mu     sync.RWMutex
-		topics map[string]Partition
+		topics map[string]*Partition
 	}
 	Partition struct {
 		mu       sync.RWMutex
@@ -44,7 +44,7 @@ type (
 	}
 )
 
-func (p Partition) GetPartition(partition int) ([]string, bool) {
+func (p *Partition) GetPartition(partition int) ([]string, bool) {
 	p.mu.RLock()
 	val, ok := p.messages[partition]
 	p.mu.RUnlock()
@@ -52,7 +52,7 @@ func (p Partition) GetPartition(partition int) ([]string, bool) {
 	return val, ok
 }
 
-func (p Partition) PushBack(partition int, message string) {
+func (p *Partition) PushBack(partition int, message string) {
 	p.mu.Lock()
 	p.messages[partition] = append(p.messages[partition], message)
 	p.mu.Unlock()
@@ -80,14 +80,14 @@ func NewInMemoryStorageSharded(hasher Hasher) *InMemorySharded {
 	for i := 0; i < SHARD_COUNT; i++ {
 		memory.shards[i] = &Shard{
 			mu:     sync.RWMutex{},
-			topics: map[string]Partition{},
+			topics: map[string]*Partition{},
 		}
 	}
 
 	return &memory
 }
 
-func (m InMemorySharded) GetTopic(topic string) (Partition, bool) {
+func (m *InMemorySharded) GetTopic(topic string) (*Partition, bool) {
 	shard := m.GetShard(topic)
 	shard.mu.RLock()
 	val, ok := shard.topics[topic]
@@ -96,19 +96,19 @@ func (m InMemorySharded) GetTopic(topic string) (Partition, bool) {
 	return val, ok
 }
 
-func (m InMemorySharded) HasTopic(topic string) bool {
+func (m *InMemorySharded) HasTopic(topic string) bool {
 	_, exist := m.GetTopic(topic)
 	return exist
 }
 
-func (m InMemorySharded) GetShard(key string) *Shard {
+func (m *InMemorySharded) GetShard(key string) *Shard {
 	return m.shards[uint(m.hasher.Hash(key))%uint(SHARD_COUNT)]
 }
 
 func (m InMemorySharded) CreateShard(key string, partitions int) {
 	shard := m.GetShard(key)
 	shard.mu.Lock()
-	shard.topics[key] = Partition{
+	shard.topics[key] = &Partition{
 		mu:       sync.RWMutex{},
 		messages: map[int][]string{},
 	}
