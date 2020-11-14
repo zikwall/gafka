@@ -11,7 +11,7 @@ import (
 )
 
 type collection struct {
-	mu           sync.RWMutex
+	mu           *sync.RWMutex
 	accumulation []string
 }
 
@@ -21,7 +21,7 @@ func (c *collection) append(messages []string) {
 	c.mu.Unlock()
 }
 
-func (c collection) len() int {
+func (c *collection) len() int {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -31,7 +31,7 @@ func (c collection) len() int {
 func TestConsumers(t *testing.T) {
 	t.Run("it should be equal 50 messages", func(t *testing.T) {
 		collect := collection{
-			mu:           sync.RWMutex{},
+			mu:           &sync.RWMutex{},
 			accumulation: make([]string, 0, 50),
 		}
 
@@ -45,7 +45,7 @@ func TestConsumers(t *testing.T) {
 			BatchSize:       10,
 			ReclaimInterval: time.Millisecond * 100,
 			Topics:          bootstrapTopics,
-			Storage:         core.NewInMemoryStorageSharded(core.Fnv32Hasher{}),
+			Storage:         core.NewInMemoryStorage(),
 		})
 
 		err, unsubscribe := gafka.Subscribe(core.SubscribeConf{
@@ -79,7 +79,7 @@ func TestConsumers(t *testing.T) {
 
 	t.Run("it should be equal 20 messages with cancel consumer", func(t *testing.T) {
 		collect := collection{
-			mu:           sync.RWMutex{},
+			mu:           &sync.RWMutex{},
 			accumulation: make([]string, 0, 50),
 		}
 
@@ -147,7 +147,7 @@ func TestConsumers(t *testing.T) {
 
 	t.Run("it should be equal 100 messages", func(t *testing.T) {
 		collect := collection{
-			mu:           sync.RWMutex{},
+			mu:           &sync.RWMutex{},
 			accumulation: make([]string, 0, 100),
 		}
 

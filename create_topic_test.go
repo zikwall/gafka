@@ -13,7 +13,7 @@ import (
 func TestCreateTopic(t *testing.T) {
 	t.Run("it should be topic created and receive 50 messages", func(t *testing.T) {
 		collect := collection{
-			mu:           sync.RWMutex{},
+			mu:           &sync.RWMutex{},
 			accumulation: make([]string, 0, 50),
 		}
 
