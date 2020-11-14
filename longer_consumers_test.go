@@ -11,7 +11,7 @@ import (
 )
 
 type collection struct {
-	mu           sync.RWMutex
+	mu           *sync.RWMutex
 	accumulation []string
 }
 
@@ -21,10 +21,17 @@ func (c *collection) append(messages []string) {
 	c.mu.Unlock()
 }
 
+func (c *collection) len() int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return len(c.accumulation)
+}
+
 func TestConsumers(t *testing.T) {
 	t.Run("it should be equal 50 messages", func(t *testing.T) {
 		collect := collection{
-			mu:           sync.RWMutex{},
+			mu:           &sync.RWMutex{},
 			accumulation: make([]string, 0, 50),
 		}
 
@@ -38,7 +45,7 @@ func TestConsumers(t *testing.T) {
 			BatchSize:       10,
 			ReclaimInterval: time.Millisecond * 100,
 			Topics:          bootstrapTopics,
-			Storage:         core.NewInMemoryStorageSharded(core.Fnv32Hasher{}),
+			Storage:         core.NewInMemoryStorage(),
 		})
 
 		err, unsubscribe := gafka.Subscribe(core.SubscribeConf{
@@ -64,15 +71,15 @@ func TestConsumers(t *testing.T) {
 		// synthetic wait consume all messages
 		time.Sleep(10 * time.Second)
 
-		if len(collect.accumulation) != 50 {
-			t.Log("Give count messages:", len(collect.accumulation))
+		if collect.len() != 50 {
+			t.Log("Give count messages:", collect.len())
 			t.Fatal("Give wrong number of messages")
 		}
 	})
 
 	t.Run("it should be equal 20 messages with cancel consumer", func(t *testing.T) {
 		collect := collection{
-			mu:           sync.RWMutex{},
+			mu:           &sync.RWMutex{},
 			accumulation: make([]string, 0, 50),
 		}
 
@@ -132,15 +139,15 @@ func TestConsumers(t *testing.T) {
 		// synthetic wait consume all messages
 		time.Sleep(15 * time.Second)
 
-		if len(collect.accumulation) != 50 {
-			t.Log("Give count messages:", len(collect.accumulation))
+		if collect.len() != 50 {
+			t.Log("Give count messages:", collect.len())
 			t.Fatal("Give wrong number of messages")
 		}
 	})
 
 	t.Run("it should be equal 100 messages", func(t *testing.T) {
 		collect := collection{
-			mu:           sync.RWMutex{},
+			mu:           &sync.RWMutex{},
 			accumulation: make([]string, 0, 100),
 		}
 
@@ -193,8 +200,8 @@ func TestConsumers(t *testing.T) {
 		// synthetic wait consume all messages
 		time.Sleep(12 * time.Second)
 
-		if len(collect.accumulation) != 100 {
-			t.Log("Give count messages:", len(collect.accumulation))
+		if collect.len() != 100 {
+			t.Log("Give count messages:", collect.len())
 			t.Fatal("Give wrong number of messages")
 		}
 	})
