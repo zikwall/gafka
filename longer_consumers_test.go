@@ -45,7 +45,7 @@ func TestConsumers(t *testing.T) {
 			BatchSize:       10,
 			ReclaimInterval: time.Millisecond * 100,
 			Topics:          bootstrapTopics,
-			Storage:         core.NewInMemoryStorage(),
+			Storage:         core.NewInMemoryStorageSharded(core.Fnv32Hasher{}),
 		})
 
 		err, unsubscribe := gafka.Subscribe(core.SubscribeConf{

@@ -37,8 +37,8 @@ func Gafka(ctx context.Context, c Configuration) *GafkaEmitter {
 		gf.UNSAFE_CreateTopic(topic)
 	}
 
-	gf.initBootstrappedTopicListeners()
-	gf.initConsumerGroupCoordinators()
+	go gf.initBootstrappedTopicListeners()
+	go gf.initConsumerGroupCoordinators()
 
 	return gf
 }

@@ -4,7 +4,11 @@ import "math"
 
 // назначается слушатель по ТЕМАМ и РАЗДЕЛАМ для возможности пере-/балансировки ПОДПИСЧИКОВ
 func (gf *GafkaEmitter) initConsumerGroupCoordinators() {
-	for topic, partitions := range gf.topics {
+	gf.mu.RLock()
+	topicsSnapshot := gf.topics
+	gf.mu.RUnlock()
+
+	for topic, partitions := range topicsSnapshot {
 		gf.createConsumerGroupCoordinatorListener(topic, partitions)
 	}
 }
