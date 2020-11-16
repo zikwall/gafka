@@ -26,6 +26,7 @@ func Gafka(ctx context.Context, c Configuration) *GafkaEmitter {
 
 	// ну тут конечно полный трешак, нужен конкретный ревью
 	// возможно от части можно вообще избавиться
+	// ToDo Metadata and ConsumerMetadata
 	gf.offsets = map[string]map[string]map[int]uint64{}
 	gf.topics = make(map[string]int, len(c.Topics))
 	gf.messagePools = map[string]chan string{}
@@ -34,11 +35,10 @@ func Gafka(ctx context.Context, c Configuration) *GafkaEmitter {
 	gf.changeNotifier = map[string]chan consumerChangeNotifier{}
 
 	for _, topic := range c.Topics {
-		gf.UNSAFE_CreateTopic(topic)
+		if err := gf.CreateTopic(topic); err != nil {
+			logln(err)
+		}
 	}
-
-	go gf.initBootstrappedTopicListeners()
-	go gf.initConsumerGroupCoordinators()
 
 	return gf
 }

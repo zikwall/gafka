@@ -1,8 +1,8 @@
 package core
 
 type GafkaStorage interface {
-	InitTopic(topic string, partition int) error
-	AddMessage(topic string, partition int, message string)
-	PeekMessagesByOffset(topic string, partition int, a, b uint64) []string
-	PeekPartitionLength(topic string, partition int) uint64
+	NewTopic(topic string, partition int) error
+	Write(topic string, partition int, message string)
+	PeekOffset(topic string, partition int, a, b uint64) []string
+	PeekLength(topic string, partition int) uint64
 }

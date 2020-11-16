@@ -5,6 +5,7 @@ import "context"
 // назнача слушаетелей по ТЕМАМ и их РАЗДЕЛАМ
 // нужно будет добавить возможность динамического формирования ТЕМ
 // gafka.AddTopic("topic_name_here", 10)
+// deprecated
 func (gf *GafkaEmitter) initBootstrappedTopicListeners() {
 	gf.mu.RLock()
 	topicsSnapshot := gf.topics
@@ -18,18 +19,17 @@ func (gf *GafkaEmitter) initBootstrappedTopicListeners() {
 		logln("Init topic ->", topic, "with partitions ->", partitions)
 
 		for partition := 1; partition <= partitions; partition++ {
-			gf.createTopicPartitionListener(topic, partition)
+			gf.makeListener(topic, partition)
 		}
 	}
 }
 
 // Распаралеливаем сообщения ТЕМЫ по разным РАЗДЕЛАМ, каждый раздел работает в своем потоке
 // возможно есть варианты получше, надо думать
-func (gf *GafkaEmitter) createTopicPartitionListener(topic string, partition int) {
+func (gf *GafkaEmitter) makeListener(topic string, partition int) {
 	gf.wg.Add(1)
 
 	go func(top string, part int) {
-		// для каждого слушателя по своему контексту, образованного от ведущего контекста всей Gafkd
 		ctx, cancel := context.WithCancel(gf.context)
 
 		defer func() {
@@ -46,7 +46,7 @@ func (gf *GafkaEmitter) createTopicPartitionListener(topic string, partition int
 			case <-ctx.Done():
 				return
 			case message := <-gf.messagePools[top]:
-				gf.addMessage(top, part, message)
+				gf.write(top, part, message)
 			}
 		}
 

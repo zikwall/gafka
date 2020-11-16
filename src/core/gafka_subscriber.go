@@ -74,7 +74,7 @@ func (gf *GafkaEmitter) Subscribe(conf SubscribeConf) (error, func()) {
 
 					// вычисляем текущий офсет для того, чтобы забирать только новые данные
 					currentOffset := gf.UNSAFE_PeekOffsetForConsumerGroup(conf.Topic, conf.Group, partition)
-					count := gf.storage.PeekPartitionLength(conf.Topic, partition)
+					count := gf.storage.PeekLength(conf.Topic, partition)
 
 					gf.mu.RUnlock()
 
@@ -90,7 +90,7 @@ func (gf *GafkaEmitter) Subscribe(conf SubscribeConf) (error, func()) {
 
 					gf.mu.Lock()
 
-					messages := gf.storage.PeekMessagesByOffset(conf.Topic, partition, currentOffset, newOffset)
+					messages := gf.storage.PeekOffset(conf.Topic, partition, currentOffset, newOffset)
 					gf.UNSAFE_CommitOffset(conf.Topic, conf.Group, partition, newOffset)
 
 					gf.mu.Unlock()

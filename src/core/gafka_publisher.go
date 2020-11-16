@@ -16,10 +16,6 @@ func (gf *GafkaEmitter) Publish(topic string, message string) error {
 
 	gf.mu.RUnlock()
 
-	// Собственно отправляем сообщение в канал конкретной ТЕМЫ
-	// дальше там он уже распарелилится по РАЗДЕЛАМ этой ТЕМЫ
 	gf.messagePools[topic] <- message
-
-	// красава
 	return nil
 }

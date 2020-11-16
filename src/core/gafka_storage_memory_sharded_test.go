@@ -27,7 +27,7 @@ func TestNewInMemoryStorageSharded(t *testing.T) {
 			t.Fatal("The failure, it was expected that the topic does not exist")
 		}
 
-		if err := inMemorySharded.InitTopic("test", 4); err == nil {
+		if err := inMemorySharded.NewTopic("test", 4); err == nil {
 			t.Fatal("Failure, we expected to get an error re-creating the topic")
 		}
 
@@ -51,29 +51,29 @@ func TestNewInMemoryStorageSharded(t *testing.T) {
 		topic.PushBack(3, "message_1")
 		topic.PushBack(4, "message_1")
 
-		if inMemorySharded.PeekPartitionLength("test", 2) != 3 {
+		if inMemorySharded.PeekLength("test", 2) != 3 {
 			t.Fatal("Failure, expected to receive 3 messages")
 		}
 
-		if inMemorySharded.PeekPartitionLength("test", 1) != 1 {
+		if inMemorySharded.PeekLength("test", 1) != 1 {
 			t.Fatal("Failure, expected to receive 1 messages for part `1`")
 		}
 
-		if inMemorySharded.PeekPartitionLength("test", 3) != 1 {
+		if inMemorySharded.PeekLength("test", 3) != 1 {
 			t.Fatal("Failure, expected to receive 1 messages for part `3`")
 		}
 
-		if inMemorySharded.PeekPartitionLength("test", 4) != 1 {
+		if inMemorySharded.PeekLength("test", 4) != 1 {
 			t.Fatal("Failure, expected to receive 1 messages for part `4`")
 		}
 
 		topic.PushBack(4, "message_2")
 
-		if inMemorySharded.PeekPartitionLength("test", 4) != 2 {
+		if inMemorySharded.PeekLength("test", 4) != 2 {
 			t.Fatal("Failure, expected to receive 2 messages for part `4`")
 		}
 
-		messages = inMemorySharded.PeekMessagesByOffset("test", 2, 0, 3)
+		messages = inMemorySharded.PeekOffset("test", 2, 0, 3)
 
 		if len(messages) != 3 {
 			t.Fatal("Failure, expected to receive 3 messages for part `2`")
@@ -91,11 +91,11 @@ func TestNewInMemoryStorageSharded(t *testing.T) {
 			t.Fatal("Failure, the topic was expected to exist")
 		}
 
-		if err := inMemorySharded.InitTopic("another_topic", 4); err == nil {
+		if err := inMemorySharded.NewTopic("another_topic", 4); err == nil {
 			t.Fatal("Failure, the topic was expected to exist")
 		}
 
-		if inMemorySharded.PeekPartitionLength("another_topic", 2) != 0 {
+		if inMemorySharded.PeekLength("another_topic", 2) != 0 {
 			t.Fatal("Failure, expected to receive 0 messages")
 		}
 
@@ -110,11 +110,11 @@ func TestNewInMemoryStorageSharded(t *testing.T) {
 		topic.PushBack(3, "message_2")
 		topic.PushBack(3, "message_3")
 
-		if inMemorySharded.PeekPartitionLength("another_topic", 3) != 3 {
+		if inMemorySharded.PeekLength("another_topic", 3) != 3 {
 			t.Fatal("Failure, expected to receive 3 messages")
 		}
 
-		if inMemorySharded.PeekPartitionLength("another_topic", 2) != 0 {
+		if inMemorySharded.PeekLength("another_topic", 2) != 0 {
 			t.Fatal("Failure, expected to receive 0 messages")
 		}
 

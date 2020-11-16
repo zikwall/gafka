@@ -21,21 +21,21 @@ func NewInMemoryStorage() *InMemoryStorage {
 	return m
 }
 
-func (self *InMemoryStorage) PeekPartitionLength(topic string, partition int) uint64 {
+func (self *InMemoryStorage) PeekLength(topic string, partition int) uint64 {
 	self.mu.RLock()
 	defer self.mu.RUnlock()
 
 	return uint64(len(self.messages[topic][partition]))
 }
 
-func (self *InMemoryStorage) PeekMessagesByOffset(topic string, partition int, a, b uint64) []string {
+func (self *InMemoryStorage) PeekOffset(topic string, partition int, a, b uint64) []string {
 	self.mu.RLock()
 	defer self.mu.RUnlock()
 
 	return self.messages[topic][partition][a:b]
 }
 
-func (self *InMemoryStorage) InitTopic(topic string, part int) error {
+func (self *InMemoryStorage) NewTopic(topic string, part int) error {
 	self.mu.Lock()
 	defer self.mu.Unlock()
 
@@ -52,7 +52,7 @@ func (self *InMemoryStorage) InitTopic(topic string, part int) error {
 	return nil
 }
 
-func (self *InMemoryStorage) AddMessage(topic string, part int, message string) {
+func (self *InMemoryStorage) Write(topic string, part int, message string) {
 	self.mu.Lock()
 	self.messages[topic][part] = append(self.messages[topic][part], message)
 	self.mu.Unlock()
