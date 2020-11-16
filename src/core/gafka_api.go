@@ -18,7 +18,19 @@ func (gf *GafkaEmitter) CreateTopic(topic Topic) error {
 		return errors.New("Topic already exist")
 	}
 
-	gf.UNSAFE_CreateTopic(topic)
+	if err := gf.storage.NewTopic(topic.Name, topic.Partitions); err != nil {
+		return err
+	}
+
+	gf.changeNotifier[topic.Name] = make(chan consumerChangeNotifier)
+	gf.topics[topic.Name] = topic.Partitions
+	gf.offsets[topic.Name] = map[string]map[int]uint64{}
+	gf.messagePools[topic.Name] = make(chan string)
+	gf.consumers[topic.Name] = map[string]map[int][]int{}
+	gf.freePartitions[topic.Name] = map[string]map[int]int{}
+
+	gf.makeListener(topic.Name, topic.Partitions)
+	gf.makeCoordinator(topic.Name, topic.Partitions)
 
 	return nil
 }

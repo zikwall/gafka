@@ -5,6 +5,7 @@ import "context"
 // назнача слушаетелей по ТЕМАМ и их РАЗДЕЛАМ
 // нужно будет добавить возможность динамического формирования ТЕМ
 // gafka.AddTopic("topic_name_here", 10)
+// deprecated
 func (gf *GafkaEmitter) initBootstrappedTopicListeners() {
 	gf.mu.RLock()
 	topicsSnapshot := gf.topics

@@ -29,17 +29,3 @@ func (gf *GafkaEmitter) UNSAFE_CommitOffset(topic, group string, part int, offse
 func (gf GafkaEmitter) UNSAFE_PeekOffsetForConsumerGroup(topic, group string, part int) uint64 {
 	return gf.offsets[topic][group][part]
 }
-
-func (gf *GafkaEmitter) UNSAFE_CreateTopic(topic Topic) {
-	// не стоит сюды смотреть...
-	gf.changeNotifier[topic.Name] = make(chan consumerChangeNotifier)
-	gf.topics[topic.Name] = topic.Partitions
-	gf.offsets[topic.Name] = map[string]map[int]uint64{}
-	gf.messagePools[topic.Name] = make(chan string)
-	gf.consumers[topic.Name] = map[string]map[int][]int{}
-	gf.freePartitions[topic.Name] = map[string]map[int]int{}
-
-	if err := gf.storage.NewTopic(topic.Name, topic.Partitions); err != nil {
-		logln(err)
-	}
-}

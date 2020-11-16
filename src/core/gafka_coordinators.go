@@ -3,6 +3,7 @@ package core
 import "math"
 
 // назначается слушатель по ТЕМАМ и РАЗДЕЛАМ для возможности пере-/балансировки ПОДПИСЧИКОВ
+// deprecated
 func (gf *GafkaEmitter) initConsumerGroupCoordinators() {
 	gf.mu.RLock()
 	topicsSnapshot := gf.topics

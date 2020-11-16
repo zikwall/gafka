@@ -34,11 +34,10 @@ func Gafka(ctx context.Context, c Configuration) *GafkaEmitter {
 	gf.changeNotifier = map[string]chan consumerChangeNotifier{}
 
 	for _, topic := range c.Topics {
-		gf.UNSAFE_CreateTopic(topic)
+		if err := gf.CreateTopic(topic); err != nil {
+			logln(err)
+		}
 	}
-
-	go gf.initBootstrappedTopicListeners()
-	go gf.initConsumerGroupCoordinators()
 
 	return gf
 }
