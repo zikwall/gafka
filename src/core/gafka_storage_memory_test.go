@@ -9,12 +9,12 @@ func TestNewInMemoryStorage(t *testing.T) {
 	inMemory := NewInMemoryStorage()
 
 	t.Run("it should be success create topic", func(t *testing.T) {
-		if err := inMemory.InitTopic("test", 4); err != nil {
+		if err := inMemory.NewTopic("test", 4); err != nil {
 			t.Fatal(err)
 		}
 
 		t.Run("it should be receive error `Topic already exist`", func(t *testing.T) {
-			if err := inMemory.InitTopic("test", 4); err == nil {
+			if err := inMemory.NewTopic("test", 4); err == nil {
 				t.Fatal("I expected to get an error creating a topic")
 			}
 		})

@@ -27,7 +27,7 @@ func TestNewInMemoryStorageSharded(t *testing.T) {
 			t.Fatal("The failure, it was expected that the topic does not exist")
 		}
 
-		if err := inMemorySharded.InitTopic("test", 4); err == nil {
+		if err := inMemorySharded.NewTopic("test", 4); err == nil {
 			t.Fatal("Failure, we expected to get an error re-creating the topic")
 		}
 
@@ -91,7 +91,7 @@ func TestNewInMemoryStorageSharded(t *testing.T) {
 			t.Fatal("Failure, the topic was expected to exist")
 		}
 
-		if err := inMemorySharded.InitTopic("another_topic", 4); err == nil {
+		if err := inMemorySharded.NewTopic("another_topic", 4); err == nil {
 			t.Fatal("Failure, the topic was expected to exist")
 		}
 

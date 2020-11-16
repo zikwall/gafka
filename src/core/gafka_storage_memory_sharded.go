@@ -129,7 +129,7 @@ func (self *InMemorySharded) PeekLength(topic string, partition int) uint64 {
 	return uint64(len(p))
 }
 
-func (self *InMemorySharded) InitTopic(topic string, part int) error {
+func (self *InMemorySharded) NewTopic(topic string, part int) error {
 	if ok := self.HasTopic(topic); ok {
 		return errors.New(fmt.Sprintf("Topic `%s` aldready exist, not created", topic))
 	}

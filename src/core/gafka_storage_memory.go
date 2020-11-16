@@ -35,7 +35,7 @@ func (self *InMemoryStorage) PeekOffset(topic string, partition int, a, b uint64
 	return self.messages[topic][partition][a:b]
 }
 
-func (self *InMemoryStorage) InitTopic(topic string, part int) error {
+func (self *InMemoryStorage) NewTopic(topic string, part int) error {
 	self.mu.Lock()
 	defer self.mu.Unlock()
 
