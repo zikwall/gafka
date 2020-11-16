@@ -9,12 +9,12 @@ func (gf *GafkaEmitter) initConsumerGroupCoordinators() {
 	gf.mu.RUnlock()
 
 	for topic, partitions := range topicsSnapshot {
-		gf.createConsumerGroupCoordinatorListener(topic, partitions)
+		gf.makeCoordinator(topic, partitions)
 	}
 }
 
 // балансировщик ТЕМ, РАЗДЕЛОВ и шрупп ПОТРЕБИТЕЛЕЙ
-func (gf *GafkaEmitter) createConsumerGroupCoordinatorListener(topic string, partitions int) {
+func (gf *GafkaEmitter) makeCoordinator(topic string, partitions int) {
 	gf.wg.Add(1)
 
 	go func(t string, parts int) {

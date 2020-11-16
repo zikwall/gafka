@@ -20,7 +20,7 @@ func (gf *GafkaEmitter) Shutdown() {
 		logln("Done all listeners and coordinators!")
 	}()
 
-	gf.waitAllListeners()
+	gf.waitWorkers()
 	os.Exit(0)
 }
 
@@ -31,8 +31,7 @@ func (gf GafkaEmitter) WaitInternalNotify() {
 	<-sig
 }
 
-func (gf GafkaEmitter) waitAllListeners() {
-	// wait done listeners
+func (gf GafkaEmitter) waitWorkers() {
 	select {
 	case <-gf.done:
 		log.Println("Exit")

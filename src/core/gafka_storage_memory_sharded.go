@@ -122,7 +122,7 @@ func (m InMemorySharded) CreateShard(key string, partitions int) {
 
 // Gafka storage interface compatibility
 
-func (self *InMemorySharded) PeekPartitionLength(topic string, partition int) uint64 {
+func (self *InMemorySharded) PeekLength(topic string, partition int) uint64 {
 	t, _ := self.GetTopic(topic)
 	p, _ := t.GetPartition(partition)
 
@@ -139,14 +139,14 @@ func (self *InMemorySharded) InitTopic(topic string, part int) error {
 	return nil
 }
 
-func (self *InMemorySharded) PeekMessagesByOffset(topic string, partition int, a, b uint64) []string {
+func (self *InMemorySharded) PeekOffset(topic string, partition int, a, b uint64) []string {
 	t, _ := self.GetTopic(topic)
 	p, _ := t.GetPartition(partition)
 
 	return p[a:b]
 }
 
-func (self *InMemorySharded) AddMessage(topic string, partition int, message string) {
+func (self *InMemorySharded) Write(topic string, partition int, message string) {
 	t, _ := self.GetTopic(topic)
 	t.PushBack(partition, message)
 }
