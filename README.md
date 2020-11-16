@@ -25,6 +25,7 @@ This is an experimental project that creates a similar example (or almost) to th
     - [ ] File storage on disk
         - [ ] Use hybrid asynchronous disk write scheme
     - [ ] Another storage...
+- [ ] Metadata and ConsumerMetadata
 
 ### Tests
 

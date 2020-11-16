@@ -26,6 +26,7 @@ func Gafka(ctx context.Context, c Configuration) *GafkaEmitter {
 
 	// ну тут конечно полный трешак, нужен конкретный ревью
 	// возможно от части можно вообще избавиться
+	// ToDo Metadata and ConsumerMetadata
 	gf.offsets = map[string]map[string]map[int]uint64{}
 	gf.topics = make(map[string]int, len(c.Topics))
 	gf.messagePools = map[string]chan string{}
