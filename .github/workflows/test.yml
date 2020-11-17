@@ -23,6 +23,6 @@ jobs:
         run: go test ./... -v -tags=unit
 
       - name: Integration
-          env:
-            GOPROXY: "https://proxy.golang.org"
-          run: go test ./... -v -tags=integration
+        env:
+          GOPROXY: "https://proxy.golang.org"
+        run: go test ./... -v -tags=integration
