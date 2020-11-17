@@ -29,6 +29,20 @@ func (f Fnv32Hasher) Hash(key string) uint32 {
 
 // storage
 
+func (p *Partition) get(partition int) ([]string, bool) {
+	p.mu.RLock()
+	val, ok := p.messages[partition]
+	p.mu.RUnlock()
+
+	return val, ok
+}
+
+func (p *Partition) write(partition int, message string) {
+	p.mu.Lock()
+	p.messages[partition] = append(p.messages[partition], message)
+	p.mu.Unlock()
+}
+
 type (
 	Shard struct {
 		mu     sync.RWMutex
@@ -43,20 +57,6 @@ type (
 		hasher Hasher
 	}
 )
-
-func (p *Partition) GetPartition(partition int) ([]string, bool) {
-	p.mu.RLock()
-	val, ok := p.messages[partition]
-	p.mu.RUnlock()
-
-	return val, ok
-}
-
-func (p *Partition) PushBack(partition int, message string) {
-	p.mu.Lock()
-	p.messages[partition] = append(p.messages[partition], message)
-	p.mu.Unlock()
-}
 
 // Example create
 //  ...
@@ -87,8 +87,8 @@ func NewInMemoryStorageSharded(hasher Hasher) *InMemorySharded {
 	return &memory
 }
 
-func (m *InMemorySharded) GetTopic(topic string) (*Partition, bool) {
-	shard := m.GetShard(topic)
+func (m *InMemorySharded) get(topic string) (*Partition, bool) {
+	shard := m.getShard(topic)
 	shard.mu.RLock()
 	val, ok := shard.topics[topic]
 	shard.mu.RUnlock()
@@ -96,17 +96,17 @@ func (m *InMemorySharded) GetTopic(topic string) (*Partition, bool) {
 	return val, ok
 }
 
-func (m *InMemorySharded) HasTopic(topic string) bool {
-	_, exist := m.GetTopic(topic)
+func (m *InMemorySharded) has(topic string) bool {
+	_, exist := m.get(topic)
 	return exist
 }
 
-func (m *InMemorySharded) GetShard(key string) *Shard {
+func (m *InMemorySharded) getShard(key string) *Shard {
 	return m.shards[uint(m.hasher.Hash(key))%uint(SHARD_COUNT)]
 }
 
-func (m InMemorySharded) CreateShard(key string, partitions int) {
-	shard := m.GetShard(key)
+func (m *InMemorySharded) createShard(key string, partitions int) {
+	shard := m.getShard(key)
 	shard.mu.Lock()
 	shard.topics[key] = &Partition{
 		mu:       sync.RWMutex{},
@@ -123,30 +123,30 @@ func (m InMemorySharded) CreateShard(key string, partitions int) {
 // Gafka storage interface compatibility
 
 func (self *InMemorySharded) PeekLength(topic string, partition int) uint64 {
-	t, _ := self.GetTopic(topic)
-	p, _ := t.GetPartition(partition)
+	t, _ := self.get(topic)
+	p, _ := t.get(partition)
 
 	return uint64(len(p))
 }
 
 func (self *InMemorySharded) NewTopic(topic string, part int) error {
-	if ok := self.HasTopic(topic); ok {
+	if ok := self.has(topic); ok {
 		return errors.New(fmt.Sprintf("Topic `%s` aldready exist, not created", topic))
 	}
 
-	self.CreateShard(topic, part)
+	self.createShard(topic, part)
 
 	return nil
 }
 
 func (self *InMemorySharded) PeekOffset(topic string, partition int, a, b uint64) []string {
-	t, _ := self.GetTopic(topic)
-	p, _ := t.GetPartition(partition)
+	t, _ := self.get(topic)
+	p, _ := t.get(partition)
 
 	return p[a:b]
 }
 
 func (self *InMemorySharded) Write(topic string, partition int, message string) {
-	t, _ := self.GetTopic(topic)
-	t.PushBack(partition, message)
+	t, _ := self.get(topic)
+	t.write(partition, message)
 }
