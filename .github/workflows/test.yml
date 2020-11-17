@@ -17,7 +17,12 @@ jobs:
       - name: Check out source code
         uses: actions/checkout@v2
 
-      - name: Test
+      - name: Unit
         env:
           GOPROXY: "https://proxy.golang.org"
-        run: go test ./... -v
+        run: go test ./... -v -tags=unit
+
+      - name: Integration
+        env:
+          GOPROXY: "https://proxy.golang.org"
+        run: go test ./... -v -tags=integration
