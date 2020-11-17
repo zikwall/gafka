@@ -13,19 +13,19 @@ func TestNewInMemoryStorageSharded(t *testing.T) {
 	)
 
 	t.Run("it should be common test", func(t *testing.T) {
-		inMemorySharded.CreateShard("test", 4)
-		topic, exist := inMemorySharded.GetTopic("test")
+		inMemorySharded.createShard("test", 4)
+		topic, exist := inMemorySharded.get("test")
 
 		// direct
 		if !exist {
 			t.Fatal("Failure, the topic was expected to exist")
 		}
 
-		if !inMemorySharded.HasTopic("test") {
+		if !inMemorySharded.has("test") {
 			t.Fatal("Failure, the topic was expected to exist")
 		}
 
-		if inMemorySharded.HasTopic("test_no_no_no") {
+		if inMemorySharded.has("test_no_no_no") {
 			t.Fatal("The failure, it was expected that the topic does not exist")
 		}
 
@@ -33,7 +33,7 @@ func TestNewInMemoryStorageSharded(t *testing.T) {
 			t.Fatal("Failure, we expected to get an error re-creating the topic")
 		}
 
-		messages, exist := topic.GetPartition(3)
+		messages, exist := topic.get(3)
 
 		// direct
 		if !exist {
@@ -45,13 +45,13 @@ func TestNewInMemoryStorageSharded(t *testing.T) {
 			t.Fatal("Expect 0 messages")
 		}
 
-		topic.PushBack(2, "message_1")
-		topic.PushBack(2, "message_2")
-		topic.PushBack(2, "message_3")
+		topic.write(2, "message_1")
+		topic.write(2, "message_2")
+		topic.write(2, "message_3")
 
-		topic.PushBack(1, "message_1")
-		topic.PushBack(3, "message_1")
-		topic.PushBack(4, "message_1")
+		topic.write(1, "message_1")
+		topic.write(3, "message_1")
+		topic.write(4, "message_1")
 
 		if inMemorySharded.PeekLength("test", 2) != 3 {
 			t.Fatal("Failure, expected to receive 3 messages")
@@ -69,7 +69,7 @@ func TestNewInMemoryStorageSharded(t *testing.T) {
 			t.Fatal("Failure, expected to receive 1 messages for part `4`")
 		}
 
-		topic.PushBack(4, "message_2")
+		topic.write(4, "message_2")
 
 		if inMemorySharded.PeekLength("test", 4) != 2 {
 			t.Fatal("Failure, expected to receive 2 messages for part `4`")
@@ -87,9 +87,9 @@ func TestNewInMemoryStorageSharded(t *testing.T) {
 	})
 
 	t.Run("it should be common test by another topic", func(t *testing.T) {
-		inMemorySharded.CreateShard("another_topic", 6)
+		inMemorySharded.createShard("another_topic", 6)
 
-		if !inMemorySharded.HasTopic("another_topic") {
+		if !inMemorySharded.has("another_topic") {
 			t.Fatal("Failure, the topic was expected to exist")
 		}
 
@@ -101,16 +101,16 @@ func TestNewInMemoryStorageSharded(t *testing.T) {
 			t.Fatal("Failure, expected to receive 0 messages")
 		}
 
-		topic, exist := inMemorySharded.GetTopic("another_topic")
+		topic, exist := inMemorySharded.get("another_topic")
 
 		// direct
 		if !exist {
 			t.Fatal("Failure, the topic was expected to exist")
 		}
 
-		topic.PushBack(3, "message_1")
-		topic.PushBack(3, "message_2")
-		topic.PushBack(3, "message_3")
+		topic.write(3, "message_1")
+		topic.write(3, "message_2")
+		topic.write(3, "message_3")
 
 		if inMemorySharded.PeekLength("another_topic", 3) != 3 {
 			t.Fatal("Failure, expected to receive 3 messages")
